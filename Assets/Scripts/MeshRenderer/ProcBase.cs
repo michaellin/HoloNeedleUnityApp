@@ -350,6 +350,41 @@ public abstract class ProcBase : MonoBehaviour
         }
     }
 
+    protected void BuildProjection(MeshBuilder meshBuilder, int segmentCount, Vector3 centre, float radius, float v, bool buildTriangles, Quaternion rotation)
+    {
+        float angleInc = (Mathf.PI * 2.0f) / segmentCount;
+
+        for (int i = 0; i <= segmentCount; i++)
+        {
+            float angle = angleInc * i;
+
+            Vector3 unitPosition = Vector3.zero;
+            unitPosition.x = Mathf.Cos(angle);
+            unitPosition.z = Mathf.Sin(angle);
+
+            unitPosition = rotation * unitPosition;
+
+            meshBuilder.Vertices.Add(centre + unitPosition * radius);
+            meshBuilder.Normals.Add(unitPosition);
+            meshBuilder.UVs.Add(new Vector2((float)i / segmentCount, v));
+
+            if (i > 0 && buildTriangles)
+            {
+                int baseIndex = meshBuilder.Vertices.Count - 1;
+
+                int vertsPerRow = segmentCount + 1;
+
+                int index0 = baseIndex;
+                int index1 = baseIndex - 1;
+                int index2 = baseIndex - vertsPerRow;
+                int index3 = baseIndex - vertsPerRow - 1;
+
+                meshBuilder.AddTriangle(index0, index2, index1);
+                meshBuilder.AddTriangle(index2, index3, index1);
+            }
+        }
+    }
+
     /// <summary>
     /// Builds a single triangle.
     /// </summary>

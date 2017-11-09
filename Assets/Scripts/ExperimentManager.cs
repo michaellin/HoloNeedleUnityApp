@@ -6,131 +6,115 @@ using UnityEngine.VR.WSA.Input;
 using UnityEngine.UI;
 
 
-public class SPAAMCalibration : MonoBehaviour
+public class ExperimentManager : MonoBehaviour
 {
-    public float speed = 0.3f;             // speed for moving the camera
-    public float distFwd = 0.4f;           // 0.4 meters in front of the user
-
     // *** User Interface *** //
     //public Text textStatus;
 
-    //public GameObject HoloLensMarker;      // This is the virtual object that will be moved around
     public GameObject NeedleMarker;                // This marker will be the one attached to the needle
     public GameObject HoloLensMarker;              // This marker will be the one attached to the HoloLens
-    public GameObject CalibrationObject;
-    public GameObject TestObject;
-    public GameObject Needle;
-    private Transform CalibrationObjectTransform;  // This is the object that will move around w/r to the HoloLens for calibration
+    public GameObject PhantomMarker;               // This marker will be attached to the phantom
+    public GameObject Needle;                      // This object represents the needle
+    public GameObject NeedleRenderer;              // This object has ProcNeedle attached
+    public GameObject Phantom;                     // This object is linked to the phantom
 
-    private bool initialAlignmentDone = false;
-    public bool completedAlignment = false;
-    Matrix4x4 T_H;
-
+    // *** Relative Transform Vars *** //
     Quaternion qC_D;
     Vector3 rC_Co_Do;
+    Quaternion qN1_N2;
+    Vector3 rN1_No1_No2;
 
+    // *** Experiment Vars *** //
+    ExpStates currState;
+    private bool lockPhantom;
+
+    // *** Tweak Vars *** //
     float x_off;
     float y_off;
     float z_off;
 
-    // *** Calibration Parameters *** //
-    public const int SPAAMPoints = 12;
-    private double[,] AlignmentPoints;
-    private double[,] CalibrationPoints =
-        { { 0, 0, 0.5 },
-          { 0, 0.04, 0.5 },
-          { 0.025, 0, 0.55 },
-          { 0.025, -0.04, 0.5 },
-          { -0.04, 0, 0.55  },
-          { -0.025, 0.025, 0.5 },
-          { -0.04, 0.04, 0.55 },
-          { -0.025, 0, 0.5 },
-          { -0.025, -0.04, 0.55 },
-          { 0.04, 0, 0.5 },
-          { 0.045, 0.02, 0.55 },
-          { -0.025, 0, 0.5 }
-        };
-    private double[,] MeasuredCalibrationPoints;
-    private int currStep = 0;
+    // *** Misc Vars *** //
     private bool debounceCalib = false;
     private bool tapDetected = false;
     GestureRecognizer recognizer;
 
+
+    // *** States for the experiment state machine *** //
+    enum ExpStates
+    {
+        InitCalib,
+        KeyboardFB,
+        Straight,
+        Shape,
+        Projection,
+        ProjectHit
+    };
+
     // Use this for initialization
     void Start()
     {
-        T_H = Matrix4x4.identity;    // Initialize the alignment matrix as identity
 
         // Calibration results
         qC_D = new Quaternion(0.058282339452415f, -0.020470290730742f, -0.000699217278049f, 0.998089999549415f);
         rC_Co_Do = new Vector3(-0.003902248347851f, 0.008639295309357f, 0.008261943033732f);
 
-        CalibrationObjectTransform = CalibrationObject.transform; // obtain the transform of the container for the calibration object
-        if (completedAlignment == false)
-        {
-            CalibrationObject.SetActive( false );
-        } else
-        {
-            TestObject.SetActive( false );
-        }
-
-        AlignmentPoints = new double[SPAAMPoints, 7];             // Initialize 2D array of numData and 7 which is 3 for position and 4 for orientation
-        MeasuredCalibrationPoints = new double[SPAAMPoints, 3];   // Array to store the calibration points in world coordinates
-
-        CalibrationObjectTransform.localPosition = new Vector3( (float)CalibrationPoints[0,0], (float)CalibrationPoints[0, 1], (float)CalibrationPoints[0, 2] );  // Set the first position
-
-        //textStatus.text = "Step " + (currStep + 1);
-
-        // Testing space
-        //GetCalibration2( toHomogeneous( 12, 3, CalibrationPoints ), toHomogeneous( 12, 3, CalibrationPoints ) );
         recognizer = new GestureRecognizer();
         recognizer.TappedEvent += ( source, tapCount, ray ) =>
         {
             tapDetected = true;
         };
         recognizer.StartCapturingGestures();
+
+        currState = ExpStates.InitCalib;
+        lockPhantom = false;
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (completedAlignment)
+        Vector3 relativePos;
+        Quaternion relativeRot;
+        Vector3 relativePhPos;
+        Quaternion relativePhRot;
+        switch (currState)
         {
-            // ** 0.00340	-0.04503	-0.03366	0.00316
-            //    0.00268    0.02992    0.01796     0.00146
-            //    0.05821    0.51140    0.35615    -0.00126
-            //    0.07317    0.63595    0.44050     1.00000
-            //T_H.m03 = x_off; T_H.m13 = y_off; T_H.m23 = z_off;
-            Vector3 relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
-            Quaternion relativeRot = Quaternion.Inverse( HoloLensMarker.transform.rotation ) * NeedleMarker.transform.rotation;
-            TestObject.transform.localRotation = qC_D * relativeRot;
-            TestObject.transform.localPosition = rC_Co_Do + qC_D*relativePos;
+            case ExpStates.InitCalib:
+                // Set Needle inactive and set calibration cube active
+                break;
+
+            case ExpStates.KeyboardFB:
+                break;
+
+            case ExpStates.Projection:
+            case ExpStates.Shape:
+            case ExpStates.Straight:
+            default:
+                relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
+                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * NeedleMarker.transform.rotation;
+                Needle.transform.localRotation = qC_D * relativeRot;
+                Needle.transform.localPosition = rC_Co_Do + qC_D * relativePos;
+
+                if (lockPhantom == false)
+                {
+                    relativePhPos = HoloLensMarker.transform.InverseTransformVector(PhantomMarker.transform.position - HoloLensMarker.transform.position);
+                    relativePhRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * PhantomMarker.transform.rotation;
+                    Phantom.transform.rotation = Camera.main.transform.rotation * qC_D * relativePhRot;
+                    Phantom.transform.position = Camera.main.transform.position + Camera.main.transform.TransformVector(rC_Co_Do + qC_D * relativePhPos);
+                }
+                break;
+
         }
 
-        CalibrationObjectTransform.localPosition = new Vector3( (float)CalibrationPoints[currStep, 0], (float)CalibrationPoints[currStep, 1], (float)CalibrationPoints[currStep, 2] );  // Set next position
-        //CalibrationObjectTransform.transform.up = Vector3.up;
+        //Vector3 relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
+        //Quaternion relativeRot = Quaternion.Inverse( HoloLensMarker.transform.rotation ) * NeedleMarker.transform.rotation;
+        //Needle.transform.localRotation = qC_D * relativeRot;
+        //Needle.transform.localPosition = rC_Co_Do + qC_D*relativePos;
 
         float step_off = 0.05f;
         if (Input.GetKeyDown( KeyCode.T ) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.2f);
-            if (completedAlignment == true)
-            {
-                completedAlignment = false;
-                CalibrationObject.SetActive(true);
-                TestObject.SetActive(false);
-                T_H = Matrix4x4.identity;
-            } else
-            {
-                completedAlignment = true;
-                CalibrationObject.SetActive(false);
-                TestObject.SetActive(true);
-                //T_H.m00 = 0.3318f; T_H.m01 = -0.0052f; T_H.m02 = 0.04f; T_H.m03 = -0.0088f;
-                //T_H.m10 = -0.0298f; T_H.m11 = 0.3186f; T_H.m12 = -0.0633f; T_H.m13 = 0.019f;
-                //T_H.m20 = -0.4631f; T_H.m21 = 0.2223f; T_H.m22 = -0.4134f; T_H.m23 = 0.365f;
-                //T_H.m30 = -0.7778f; T_H.m31 = 0.2727f; T_H.m32 = -1.3637f; T_H.m33 = 1.0f;
-            }
             
         }
         else if (Input.GetKeyDown(KeyCode.W) && (debounceCalib == false))
@@ -181,99 +165,36 @@ public class SPAAMCalibration : MonoBehaviour
             qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
             Debug.Log(qC_D);
         }
-
-        if ((Input.GetKeyDown( KeyCode.Space ) || tapDetected) && (currStep < SPAAMPoints) && (debounceCalib == false))
+        else if (Input.GetKeyDown(KeyCode.Alpha1) && (debounceCalib == false))
         {
-            if (!initialAlignmentDone)
-            {
-                initialAlignmentDone = true;
-            }
-            if (tapDetected)
-            {
-                tapDetected = false;
-            }
-            Vector3 relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position); // in the Camera coordinate system
-            Quaternion relativeRot = Quaternion.Inverse( HoloLensMarker.transform.rotation ) * NeedleMarker.transform.rotation;                      // rotation from HMD to object
-
-            AlignmentPoints[currStep, 0] = relativePos.x;
-            AlignmentPoints[currStep, 1] = relativePos.y;
-            AlignmentPoints[currStep, 2] = relativePos.z;
-            AlignmentPoints[currStep, 3] = relativeRot.w;
-            AlignmentPoints[currStep, 4] = relativeRot.x;
-            AlignmentPoints[currStep, 5] = relativeRot.y;
-            AlignmentPoints[currStep, 6] = relativeRot.z;
-
-            MeasuredCalibrationPoints[currStep, 0] = CalibrationObjectTransform.position.x;
-            MeasuredCalibrationPoints[currStep, 1] = CalibrationObjectTransform.position.y;
-            MeasuredCalibrationPoints[currStep, 2] = CalibrationObjectTransform.position.z;
-
-            Debug.Log( "posx " + AlignmentPoints[currStep, 0].ToString( "F4" ) +
-                       " posy " + AlignmentPoints[currStep, 1].ToString( "F4" ) +
-                       " posz " + AlignmentPoints[currStep, 2].ToString( "F4" ) );
-
-            if (currStep == SPAAMPoints - 1)
-            {
-                //textStatus.text = "Done.";
-                Debug.Log( "Done" );
-                completedAlignment = true;
-                //Matrix4x4 T_H = GetCalibration2( toHomogeneous(12, 3, CalibrationPoints), toHomogeneous(12, 3, AlignmentPoints) );
-                Debug.Log( T_H );
-
-                CalibrationObject.SetActive( false );
-                TestObject.SetActive( true );
-
-                // Figure out what to do next
-                completedAlignment = true;
-            }
-            else
-            {
-                currStep++;
-                //textStatus.text = "Step " + (currStep + 1);
-                Debug.Log( "Step " + (currStep + 1) );
-            }
             debounceCalib = true;
-            Invoke( "recoverDebounce", 0.2f );
+            Invoke("recoverDebounce", 0.08f);
+            currState = ExpStates.Straight;
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+            Debug.Log("current state: straight");
         }
-        else if (Input.GetKeyDown( KeyCode.F ))
+        else if (Input.GetKeyDown(KeyCode.Alpha2) && (debounceCalib == false))
         {
-            Debug.Log("posx " + TestObject.transform.localPosition.x.ToString("F4") +
-                       " posy " + TestObject.transform.localPosition.y.ToString("F4") +
-                       " posz " + TestObject.transform.localPosition.z.ToString("F4"));
+            debounceCalib = true;
+            Invoke("recoverDebounce", 0.08f);
+            currState = ExpStates.Shape;
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+            Debug.Log("current state: shape");
         }
-        else if (Input.GetKeyDown( KeyCode.P ))
+        else if (Input.GetKeyDown(KeyCode.Alpha3) && (debounceCalib == false))
         {
-            for (int i = 0; i < currStep; i++)
-            {
-                Debug.Log( "posx " + AlignmentPoints[i, 0].ToString( "F4" ) +
-                            " posy " + AlignmentPoints[i, 1].ToString( "F4" ) +
-                            " posz " + AlignmentPoints[i, 2].ToString( "F4" ) +
-                            " rotw " + AlignmentPoints[i, 3].ToString( "F4" ) +
-                            " rotx " + AlignmentPoints[i, 4].ToString( "F4" ) +
-                            " roty " + AlignmentPoints[i, 5].ToString( "F4" ) +
-                            " rotz " + AlignmentPoints[i, 6].ToString( "F4" ) );
-            }
+            debounceCalib = true;
+            Invoke("recoverDebounce", 0.08f);
+            currState = ExpStates.Projection;
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+            Debug.Log("current state: project");
         }
-        else if (Input.GetKeyDown( KeyCode.R ))
+        else if (Input.GetKeyDown(KeyCode.L) && (debounceCalib == false))
         {
-            completedAlignment = false;
-            CalibrationObject.SetActive( true );
-            TestObject.SetActive( false );
-            currStep = 0;
-            CalibrationObjectTransform.position = new Vector3( (float)CalibrationPoints[0, 0], (float)CalibrationPoints[0, 1], (float)CalibrationPoints[0, 2] );  // Set the first position
+            debounceCalib = true;
+            Invoke("recoverDebounce", 0.08f);
+            lockPhantom ^= true;
         }
-
-        //float xAxisValue = speed * Input.GetAxis( "Horizontal" );
-        //float zAxisValue = speed * Input.GetAxis( "Vertical" );
-        //if (Camera.current != null)
-        //{
-        //    Camera.current.transform.Translate( new Vector3( xAxisValue, 0.0f, zAxisValue ) );
-        //}
-
-        //transform.position = Camera.main.transform.position + Camera.main.transform.forward * distFwd;
-        //if (!initialAlignment)
-        //{
-        //    transform.rotation = Quaternion.AngleAxis( Camera.main.transform.rotation.eulerAngles.y, Vector3.up );
-        //}
     }
 
     /// <summary>

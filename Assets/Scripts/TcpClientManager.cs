@@ -19,7 +19,7 @@ using System.Text;
 using System;
 #endif
 
-namespace ShapeSensingNeedle {
+namespace ShapeSensing {
     /// <summary>
     /// Class for establishing remote tcp connection and streaming data.
     /// </summary>
@@ -38,6 +38,7 @@ namespace ShapeSensingNeedle {
         public float ay = 0, by = 0;
 
         public int interlock = 0;  // This variable is used to protect read wright issues. However, might be unnecessary
+        public bool enableTCP;
 
         // code that should be in macro
         private Socket _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -45,7 +46,10 @@ namespace ShapeSensingNeedle {
 
         public void Start()
         {
-            SetupServer();
+            if (enableTCP)
+            {
+                SetupServer();
+            }
         }
 
         private void SetupServer()
