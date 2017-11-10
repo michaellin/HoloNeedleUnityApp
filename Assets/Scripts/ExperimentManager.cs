@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.VR.WSA.Input;
+
 using UnityEngine.UI;
 
 
@@ -36,7 +36,7 @@ public class ExperimentManager : MonoBehaviour
     // *** Misc Vars *** //
     private bool debounceCalib = false;
     private bool tapDetected = false;
-    GestureRecognizer recognizer;
+    UnityEngine.XR.WSA.Input.GestureRecognizer recognizer;
 
 
     // *** States for the experiment state machine *** //
@@ -58,7 +58,10 @@ public class ExperimentManager : MonoBehaviour
         qC_D = new Quaternion(0.058282339452415f, -0.020470290730742f, -0.000699217278049f, 0.998089999549415f);
         rC_Co_Do = new Vector3(-0.003902248347851f, 0.008639295309357f, 0.008261943033732f);
 
-        recognizer = new GestureRecognizer();
+        qN1_N2 = new Quaternion(0.603773723212385f, 0.029050211798263f, 0.796173811526621f, 0.026844705099943f);
+        rN1_No1_No2 = new Vector3(-0.064259547303643f, -0.377448931834412f, 0.346321017932784f);
+
+        recognizer = new UnityEngine.XR.WSA.Input.GestureRecognizer();
         recognizer.TappedEvent += ( source, tapCount, ray ) =>
         {
             tapDetected = true;
@@ -83,6 +86,10 @@ public class ExperimentManager : MonoBehaviour
                 break;
 
             case ExpStates.KeyboardFB:
+                relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
+                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * NeedleMarker.transform.rotation;
+                Needle.transform.localRotation = qC_D * relativeRot;
+                Needle.transform.localPosition = rC_Co_Do + qC_D * relativePos;
                 break;
 
             case ExpStates.Projection:
@@ -121,49 +128,63 @@ public class ExperimentManager : MonoBehaviour
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upXOffset();
             //rC_Co_Do += new Vector3(step_off, 0, 0);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(step_off, 0, 0));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(step_off, 0, 0));
+            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.S) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnXOffset();
             //rC_Co_Do -= new Vector3(step_off, 0, 0);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(-step_off, 0, 0));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(-step_off, 0, 0));
+            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.A) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnZOffset();
             //rC_Co_Do += new Vector3(0, step_off, 0);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(0, step_off, 0));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, step_off, 0));
+            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.D) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upZOffset();
             //rC_Co_Do -= new Vector3(0, step_off, 0);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(0, -step_off, 0));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, -step_off, 0));
+            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.Q) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnYOffset();
             //rC_Co_Do += new Vector3(0, 0, step_off);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, step_off));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, step_off));
+            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.E) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upYOffset();
             //rC_Co_Do -= new Vector3(0, 0, step_off);
-            qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
-            Debug.Log(qC_D);
+            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
+            //Debug.Log(qC_D);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha0) && (debounceCalib == false))
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", 0.08f);
+            currState = ExpStates.KeyboardFB;
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateTip();
+            Debug.Log("current state: keyboard feedback");
         }
         else if (Input.GetKeyDown(KeyCode.Alpha1) && (debounceCalib == false))
         {

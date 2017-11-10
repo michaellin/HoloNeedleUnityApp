@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.VR.WSA.Input;
 using System.Globalization;
 
 #if NETFX_CORE   // Need this so that these libraries are only imported in the HoloLens

@@ -23,12 +23,15 @@ namespace ShapeSensing {
         private float ax = 0, bx = 0;         // Coefficients of linear fit to the curavture along needle in xz plane
         private float ay = 0, by = 0;         // Coefficients of linear fit to the curavture along needle in yz plane
 
-        private Vector3 offset;
+        public Vector3 offset;
+        private float step = 0.0005f;
 
         // *** Needle States ***/
         private NeedleStates needleState;
         enum NeedleStates
         {
+            Tip,
+            WaitTip,
             Straight,
             Shape,
             Project
@@ -37,6 +40,7 @@ namespace ShapeSensing {
         // *** Peripheral objects *** //
         private TcpClientManager tcp;
         public GameObject projection;
+        public GameObject tip;
 
         /// <summary>
         /// MonoBehavior method called on start.
@@ -53,6 +57,7 @@ namespace ShapeSensing {
 
             Debug.Log("Running HoloNeedle ...");
             projection.SetActive(false);
+            tip.SetActive(false);
             needleState = NeedleStates.Straight;
         }
 
@@ -64,6 +69,21 @@ namespace ShapeSensing {
             Mesh mesh;
             switch (needleState)
             {
+                case NeedleStates.WaitTip:
+                    break;
+                case NeedleStates.Tip:
+                    if (tcp.interlock == 1)
+                    {
+                        // When the tcp object has coefficients ready, get them.
+                        ax = tcp.ax; bx = tcp.bx;
+                        ay = tcp.ay; by = tcp.by;
+                        tcp.interlock--;
+
+                        chainedPoints = GetChainedPoints(m_HeightSegmentCount, ax, ay, bx, by);
+                        tip.transform.localPosition = offset + chainedPoints[chainedPoints.Length - 1];
+                    }
+
+                    break;
                 case NeedleStates.Straight:
                     ax = 0; bx = 0;
                     ay = 0; by = 0;
@@ -103,25 +123,63 @@ namespace ShapeSensing {
 
         }
 
+        public void setStateTip()
+        {
+            projection.SetActive(false);
+            tip.SetActive(true);
+            needleState = NeedleStates.Tip;
+            offset = new Vector3();
+            // clear current mesh
+            GetComponent<MeshFilter>().mesh.Clear();
+        }
+
         public void setStateStraight()
         {
             projection.SetActive(false);
+            tip.SetActive(false);
             needleState = NeedleStates.Straight;
         }
 
         public void setStateShape()
         {
             projection.SetActive(false);
+            tip.SetActive(false);
             needleState = NeedleStates.Shape;
         }
 
         public void setStateProjection()
         {
             projection.SetActive(true);
+            tip.SetActive(false);
             needleState = NeedleStates.Project;
             chainedPoints = GetChainedPoints(m_HeightSegmentCount, ax, ay, bx, by);
             Mesh mesh = BuildMeshWithProjection();
             GetComponent<MeshFilter>().mesh = mesh;          // Set the mesh so that it appears in the graphics
+        }
+
+        public void upXOffset()
+        {
+            offset += new Vector3(step, 0, 0);
+        }
+        public void dnXOffset()
+        {
+            offset -= new Vector3(step, 0, 0);
+        }
+        public void upYOffset()
+        {
+            offset += new Vector3(0, step, 0);
+        }
+        public void dnYOffset()
+        {
+            offset -= new Vector3(0, step, 0);
+        }
+        public void upZOffset()
+        {
+            offset += new Vector3(0, 0, step);
+        }
+        public void dnZOffset()
+        {
+            offset -= new Vector3(0, 0, step);
         }
 
         /// <summary>
