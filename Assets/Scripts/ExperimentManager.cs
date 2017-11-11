@@ -85,7 +85,7 @@ public class ExperimentManager : MonoBehaviour
 
         // Data recording
         string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
-        string filename = "needleMkr";
+        string filename = "subject";
         string userFolderName = filename + "_" + "trialNum_" + 1;
         string userFolder = baseFilePath + userFolderName;
         // Determine whether the directory exists.
@@ -121,6 +121,69 @@ public class ExperimentManager : MonoBehaviour
                 relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * NeedleMarker.transform.rotation;
                 Needle.transform.localRotation = qC_D * relativeRot;
                 Needle.transform.localPosition = rC_Co_Do + qC_D * relativePos;
+                
+                if (Input.GetKeyDown(KeyCode.KeypadPlus) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upXOffset();
+                    //rC_Co_Do += new Vector3(step_off, 0, 0);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(step_off, 0, 0));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.KeypadMinus) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnXOffset();
+                    //rC_Co_Do -= new Vector3(step_off, 0, 0);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(-step_off, 0, 0));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.Keypad6) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnZOffset();
+                    //rC_Co_Do += new Vector3(0, step_off, 0);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(0, step_off, 0));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.Keypad4) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upZOffset();
+                    //rC_Co_Do -= new Vector3(0, step_off, 0);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(0, -step_off, 0));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.Keypad2) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnYOffset();
+                    //rC_Co_Do += new Vector3(0, 0, step_off);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, step_off));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.Keypad8) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upYOffset();
+                    //rC_Co_Do -= new Vector3(0, 0, step_off);
+                    //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
+                    //Debug.Log(qC_D);
+                }
+                else if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    Vector3 offsetVec = NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().offset;
+                    offsetRecorder.addData(offsetVec.x.ToString(), offsetVec.y.ToString(), offsetVec.z.ToString());
+                }
+
                 break;
 
             case ExpStates.Projection:
@@ -144,66 +207,12 @@ public class ExperimentManager : MonoBehaviour
         }
 
 
-
+        /*** Mode changing and other key listeners ***/
         if (Input.GetKeyDown( KeyCode.T ) && (debounceCalib == false))
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.2f);
             
-        }
-        else if (Input.GetKeyDown(KeyCode.W) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upXOffset();
-            //rC_Co_Do += new Vector3(step_off, 0, 0);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(step_off, 0, 0));
-            //Debug.Log(qC_D);
-        }
-        else if (Input.GetKeyDown(KeyCode.S) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnXOffset();
-            //rC_Co_Do -= new Vector3(step_off, 0, 0);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(-step_off, 0, 0));
-            //Debug.Log(qC_D);
-        }
-        else if (Input.GetKeyDown(KeyCode.A) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnZOffset();
-            //rC_Co_Do += new Vector3(0, step_off, 0);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, step_off, 0));
-            //Debug.Log(qC_D);
-        }
-        else if (Input.GetKeyDown(KeyCode.D) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upZOffset();
-            //rC_Co_Do -= new Vector3(0, step_off, 0);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, -step_off, 0));
-            //Debug.Log(qC_D);
-        }
-        else if (Input.GetKeyDown(KeyCode.Q) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnYOffset();
-            //rC_Co_Do += new Vector3(0, 0, step_off);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, step_off));
-            //Debug.Log(qC_D);
-        }
-        else if (Input.GetKeyDown(KeyCode.E) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upYOffset();
-            //rC_Co_Do -= new Vector3(0, 0, step_off);
-            //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
-            //Debug.Log(qC_D);
         }
         else if (Input.GetKeyDown(KeyCode.Alpha0) && (debounceCalib == false))
         {
@@ -211,6 +220,7 @@ public class ExperimentManager : MonoBehaviour
             Invoke("recoverDebounce", 0.08f);
             currState = ExpStates.KeyboardFB;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateTip();
+            offsetRecorder = new RecordData("subject1_kbFB", offsetRecorderCols);
             Debug.Log("current state: keyboard feedback");
         }
         else if (Input.GetKeyDown(KeyCode.Alpha1) && (debounceCalib == false))
