@@ -187,9 +187,10 @@ public abstract class ProcBase : MonoBehaviour
 
 			meshBuilder.Vertices.Add(centre + unitPosition * radius);
 			meshBuilder.Normals.Add(unitPosition);
-			meshBuilder.UVs.Add(new Vector2((float)i / segmentCount, v));
+			//meshBuilder.UVs.Add(new Vector2((float)i / segmentCount, v));
+            meshBuilder.UVs.Add(centre + unitPosition * radius);
 
-			if (i > 0 && buildTriangles)
+            if (i > 0 && buildTriangles)
 			{
 				int baseIndex = meshBuilder.Vertices.Count - 1;
 
@@ -219,7 +220,6 @@ public abstract class ProcBase : MonoBehaviour
 	protected void BuildRing(MeshBuilder meshBuilder, int segmentCount, Vector3 centre, float radius, float v, bool buildTriangles, Quaternion rotation)
 	{
 		float angleInc = (Mathf.PI * 2.0f) / segmentCount;
-
 		for (int i = 0; i <= segmentCount; i++)
 		{
 			float angle = angleInc * i;
@@ -232,9 +232,9 @@ public abstract class ProcBase : MonoBehaviour
 
 			meshBuilder.Vertices.Add(centre + unitPosition * radius);
 			meshBuilder.Normals.Add(unitPosition);
-			meshBuilder.UVs.Add(new Vector2((float)i / segmentCount, v));
+            meshBuilder.UVs.Add(new Vector2(((float)i / (50*segmentCount)), v));
 
-			if (i > 0 && buildTriangles)
+            if (i > 0 && buildTriangles)
 			{
 				int baseIndex = meshBuilder.Vertices.Count - 1;
 

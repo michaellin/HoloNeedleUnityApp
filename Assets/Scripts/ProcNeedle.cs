@@ -10,12 +10,12 @@ namespace ShapeSensing {
     {
         // *** Resolution of generated mesh *** //
         private const int m_RadialSegmentCount = 10;  // Number of radial segments
-        private const int m_HeightSegmentCount = 50;  // Number of height segments
+        private const int m_HeightSegmentCount = 80;  // Number of height segments
 
         // *** Needle dimensions  *** //
         public float m_Radius = 0.001f;         // Radius of the needle 0.5 mm
         public float needleLength = 0.14512f;   // Length of needle 145.12 mm
-        private const float tipLength = 0.001f;        // Dimensions of needle tip
+        private const float tipLength = 0.002f;        // Dimensions of needle tip
 
         // *** Needle coordinates *** //
         //public Vector3[] polyPoints;                  // Polynomial interpolated points
@@ -202,7 +202,7 @@ namespace ShapeSensing {
             for (int i = 0; i < chainedPoints.Length; i++)
             {
                 Vector3 centrePos = chainedPoints[i];
-                float v = (float)i / m_HeightSegmentCount;
+                float v = ((float)i) /m_HeightSegmentCount;
                 Quaternion rot = Quaternion.FromToRotation(Vector3.up, GetDirection(i));
                 BuildRing(meshBuilder, m_RadialSegmentCount, centrePos, m_Radius, v, i > 0, rot);
             }

@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
-
 using UnityEngine.UI;
+using RecData;
 
 
 public class ExperimentManager : MonoBehaviour
@@ -11,12 +12,14 @@ public class ExperimentManager : MonoBehaviour
     // *** User Interface *** //
     //public Text textStatus;
 
+    #region externalObjects
     public GameObject NeedleMarker;                // This marker will be the one attached to the needle
     public GameObject HoloLensMarker;              // This marker will be the one attached to the HoloLens
     public GameObject PhantomMarker;               // This marker will be attached to the phantom
     public GameObject Needle;                      // This object represents the needle
     public GameObject NeedleRenderer;              // This object has ProcNeedle attached
     public GameObject Phantom;                     // This object is linked to the phantom
+    #endregion
 
     // *** Relative Transform Vars *** //
     Quaternion qC_D;
@@ -25,21 +28,11 @@ public class ExperimentManager : MonoBehaviour
     Vector3 rN1_No1_No2;
 
     // *** Experiment Vars *** //
+    #region experimentVars
     ExpStates currState;
     private bool lockPhantom;
 
-    // *** Tweak Vars *** //
-    float x_off;
-    float y_off;
-    float z_off;
-
-    // *** Misc Vars *** //
-    private bool debounceCalib = false;
-    private bool tapDetected = false;
-    UnityEngine.XR.WSA.Input.GestureRecognizer recognizer;
-
-
-    // *** States for the experiment state machine *** //
+    // States for the experiment state machine
     enum ExpStates
     {
         InitCalib,
@@ -49,6 +42,34 @@ public class ExperimentManager : MonoBehaviour
         Projection,
         ProjectHit
     };
+    #endregion
+
+    #region record data vars
+    // the recording objects
+    private RecordData phantomMkrRecorder;
+    private RecordData needleMkrRecorder;
+    private RecordData hlMkrRecorder;
+    private RecordData offsetRecorder;
+    // num of columns for each file
+    private int phantomMkrRecorderCols = 7;
+    private int needleMkrRecorderCols = 7;
+    private int hlMkrRecorderCols = 7;
+    private int offsetRecorderCols = 3;
+    #endregion
+
+    // *** Misc Vars *** //
+    #region miscVars
+    float x_off;
+    float y_off;
+    float z_off;
+    float step_off = 0.05f;
+    private bool debounceCalib = false;
+    //private bool tapDetected = false;
+    //UnityEngine.XR.WSA.Input.GestureRecognizer recognizer;
+    #endregion
+
+
+
 
     // Use this for initialization
     void Start()
@@ -61,12 +82,22 @@ public class ExperimentManager : MonoBehaviour
         qN1_N2 = new Quaternion(0.603773723212385f, 0.029050211798263f, 0.796173811526621f, 0.026844705099943f);
         rN1_No1_No2 = new Vector3(-0.064259547303643f, -0.377448931834412f, 0.346321017932784f);
 
-        recognizer = new UnityEngine.XR.WSA.Input.GestureRecognizer();
-        recognizer.TappedEvent += ( source, tapCount, ray ) =>
+
+        // Data recording
+        string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
+        string filename = "needleMkr";
+        string userFolderName = filename + "_" + "trialNum_" + 1;
+        string userFolder = baseFilePath + userFolderName;
+        // Determine whether the directory exists.
+        if (Directory.Exists(userFolder))
         {
-            tapDetected = true;
-        };
-        recognizer.StartCapturingGestures();
+            Debug.Log("WARNING! User folder exists already. Did you update subject number?");
+        }
+        else
+        {
+            Directory.CreateDirectory(userFolder);
+        }
+        filename = userFolderName + "/" + filename;
 
         currState = ExpStates.InitCalib;
         lockPhantom = false;
@@ -112,12 +143,8 @@ public class ExperimentManager : MonoBehaviour
 
         }
 
-        //Vector3 relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
-        //Quaternion relativeRot = Quaternion.Inverse( HoloLensMarker.transform.rotation ) * NeedleMarker.transform.rotation;
-        //Needle.transform.localRotation = qC_D * relativeRot;
-        //Needle.transform.localPosition = rC_Co_Do + qC_D*relativePos;
 
-        float step_off = 0.05f;
+
         if (Input.GetKeyDown( KeyCode.T ) && (debounceCalib == false))
         {
             debounceCalib = true;
@@ -215,6 +242,21 @@ public class ExperimentManager : MonoBehaviour
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
             lockPhantom ^= true;
+        }
+        else if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", 0.08f);
+            float startTime = Time.realtimeSinceStartup;
+            needleMkrRecorder = new RecordData("subj01" + "_needleMkrFile" + "_trialNo_" + 1, needleMkrRecorderCols);
+            for (int i = 0; i < 2000; i ++)
+            {
+                needleMkrRecorder.addData(PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(), 
+                                            PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
+                                            PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString());
+            }
+            needleMkrRecorder.WriteToFile(); // This would be to close the data recorder
+            Debug.Log("finished writing in: " + (Time.realtimeSinceStartup - startTime) + "s");
         }
     }
 
