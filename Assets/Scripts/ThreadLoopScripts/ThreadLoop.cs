@@ -131,7 +131,7 @@ namespace thrThreadLoop
         public void Close()
         {
             this._CloseThread = true;
-            Debug.Log("thread closed");
+            Debug.Log(this._Name + " thread closed");
         }
 
         private bool _IsLoopPaused = false;

@@ -29,6 +29,12 @@ public class ExperimentManager : MonoBehaviour
 
     // *** Experiment Vars *** //
     #region experimentVars
+    public int subjNum;
+    public int trialNo;
+    private bool startRecording;
+    public float recordPeriod;
+    private float recordCounter;
+
     ExpStates currState;
     private bool lockPhantom;
 
@@ -49,6 +55,7 @@ public class ExperimentManager : MonoBehaviour
     private RecordData phantomMkrRecorder;
     private RecordData needleMkrRecorder;
     private RecordData hlMkrRecorder;
+    private RecordData MkrsRecorder;
     private RecordData offsetRecorder;
     // num of columns for each file
     private int phantomMkrRecorderCols = 7;
@@ -68,9 +75,6 @@ public class ExperimentManager : MonoBehaviour
     //UnityEngine.XR.WSA.Input.GestureRecognizer recognizer;
     #endregion
 
-
-
-
     // Use this for initialization
     void Start()
     {
@@ -85,8 +89,7 @@ public class ExperimentManager : MonoBehaviour
 
         // Data recording
         string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
-        string filename = "subject";
-        string userFolderName = filename + "_" + "trialNum_" + 1;
+        string userFolderName = "subject_" + subjNum;
         string userFolder = baseFilePath + userFolderName;
         // Determine whether the directory exists.
         if (Directory.Exists(userFolder))
@@ -97,12 +100,27 @@ public class ExperimentManager : MonoBehaviour
         {
             Directory.CreateDirectory(userFolder);
         }
-        filename = userFolderName + "/" + filename;
+
+        // Init all the data recording objects
+        string filename;
+        //filename = userFolder + "/needleMkr_Trial_" + trialNo;
+        //needleMkrRecorder = new RecordData(filename, needleMkrRecorderCols);
+        //filename = userFolder + "/hlMkr_Trial_" + trialNo;
+        //hlMkrRecorder = new RecordData(filename, hlMkrRecorderCols);
+        //filename = userFolder + "/phantomMkr_Trial_" + trialNo;
+        //phantomMkrRecorder = new RecordData(filename, phantomMkrRecorderCols, 1);
+        filename = userFolder + "/Mkrs_Trial_" + trialNo;
+        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+        filename = userFolder + "/offset";
+        offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
+
 
         currState = ExpStates.InitCalib;
         lockPhantom = false;
+        startRecording = false;
     }
 
+    float startTime;
     // Update is called once per frame
     void FixedUpdate()
     {
@@ -202,6 +220,26 @@ public class ExperimentManager : MonoBehaviour
                     Phantom.transform.rotation = Camera.main.transform.rotation * qC_D * relativePhRot;
                     Phantom.transform.position = Camera.main.transform.position + Camera.main.transform.TransformVector(rC_Co_Do + qC_D * relativePhPos);
                 }
+
+                if (startRecording)
+                {
+                    recordCounter -= Time.deltaTime;
+                    if (recordCounter < 0)
+                    {
+                        MkrsRecorder.addData(Time.realtimeSinceStartup.ToString(),
+                                                PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(),
+                                                PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
+                                                PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString(),
+                                                NeedleMarker.transform.position.x.ToString(), NeedleMarker.transform.position.y.ToString(), NeedleMarker.transform.position.z.ToString(),
+                                                NeedleMarker.transform.rotation.w.ToString(), NeedleMarker.transform.rotation.x.ToString(),
+                                                NeedleMarker.transform.rotation.y.ToString(), NeedleMarker.transform.rotation.z.ToString(),
+                                                HoloLensMarker.transform.position.x.ToString(), HoloLensMarker.transform.position.y.ToString(), HoloLensMarker.transform.position.z.ToString(),
+                                                HoloLensMarker.transform.rotation.w.ToString(), HoloLensMarker.transform.rotation.x.ToString(),
+                                                HoloLensMarker.transform.rotation.y.ToString(), HoloLensMarker.transform.rotation.z.ToString());
+                        recordCounter = recordPeriod; // reset the counter
+                    }
+                }
+
                 break;
 
         }
@@ -220,7 +258,6 @@ public class ExperimentManager : MonoBehaviour
             Invoke("recoverDebounce", 0.08f);
             currState = ExpStates.KeyboardFB;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateTip();
-            offsetRecorder = new RecordData("subject1_kbFB", offsetRecorderCols);
             Debug.Log("current state: keyboard feedback");
         }
         else if (Input.GetKeyDown(KeyCode.Alpha1) && (debounceCalib == false))
@@ -257,17 +294,44 @@ public class ExperimentManager : MonoBehaviour
         {
             debounceCalib = true;
             Invoke("recoverDebounce", 0.08f);
-            float startTime = Time.realtimeSinceStartup;
-            needleMkrRecorder = new RecordData("subj01" + "_needleMkrFile" + "_trialNo_" + 1, needleMkrRecorderCols);
-            for (int i = 0; i < 2000; i ++)
+            startRecording ^= true; // toggle
+            if (startRecording)
             {
-                needleMkrRecorder.addData(PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(), 
-                                            PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
-                                            PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString());
+                // reset the counter
+                recordCounter = recordPeriod;
             }
-            needleMkrRecorder.WriteToFile(); // This would be to close the data recorder
-            Debug.Log("finished writing in: " + (Time.realtimeSinceStartup - startTime) + "s");
+            //float startTime = Time.realtimeSinceStartup;
+
+            //for (int i = 0; i < 100; i ++)
+            //{
+            //    needleMkrRecorder.addData(PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(), 
+            //                                PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
+            //                                PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString());
+            //}
+            //Debug.Log("finished writing in: " + (Time.realtimeSinceStartup - startTime) + "s");
         }
+    }
+
+    /// <summary>
+    /// Clean up the thread and close the port on application close event.
+    /// </summary>
+    void OnApplicationQuit()
+    {
+        Debug.Log("Closing all recording objects");
+        MkrsRecorder.closeRecorder();
+        offsetRecorder.closeRecorder();
+    }
+
+    /// <summary>
+    /// This function is called when the MonoBehaviour will be destroyed.
+    /// OnDestroy will only be called on game objects that have previously
+    /// been active.
+    /// </summary>
+    void OnDestroy()
+    {
+        Debug.Log("Closing all recording objects");
+        MkrsRecorder.closeRecorder();
+        offsetRecorder.closeRecorder();
     }
 
     /// <summary>

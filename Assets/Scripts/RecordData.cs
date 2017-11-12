@@ -2,30 +2,54 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
-//using RecData;
+using thrThreadLoop;
 
 namespace RecData {
 
 	public class RecordData {
 
-		public string filename;
-		public int dataColumns;
-		private List<List<string>> data;
+		public string _filename;
+		public int _dataColumns;
         private string textToWrite;
+        private int _dataCount;
+        private int _writePeriod;
+        private DataQueueThreadLoop _dataQueueThread;
 
         /// <summary>
         /// Constructor. 
         /// Inputs: file name and number of data columns for this file.
         /// </summary>
-        public RecordData (string filename = "", int dataColumns = 1) {
-			this.filename = filename;
-			this.dataColumns = dataColumns;
+        public RecordData (string filename = "", int dataColumns = 1, int writePeriod = 20) {
+			this._filename = filename;
+			this._dataColumns = dataColumns;
+            this._writePeriod = writePeriod;
+
             // Here do the directory checking
-            data = new List<List<string>> ();
-			for (int i = 0; i < dataColumns; i++) {
-				data.Add(new List<string> ());
-			}
-		}
+            if (this._filename == "")
+            {
+                this._filename = "default_data";
+            }
+
+            //// save file to Data directory
+            //this._filename = Directory.GetCurrentDirectory() + "/Assets/Data/" + this._filename;
+
+            // check to see file name is not already in use so
+            // we don't override existing data
+            string temp = this._filename + ".txt";
+            int k = 0;
+            while (File.Exists(temp))
+            {
+                Debug.Log("File name already in use. Finding an alternative.");
+                temp = this._filename + "_" + k + ".txt";
+                k++;
+            }
+
+            this._filename = temp;
+
+            _dataQueueThread = new DataQueueThreadLoop("dataQueueThread", true, System.Threading.ThreadPriority.Lowest, 5, 4, this._filename);
+            _dataQueueThread.Start();
+
+        }
 
         /// <summary>
         /// Add Data Method. 
@@ -35,103 +59,25 @@ namespace RecData {
         /// </summary>
         public void addData (params string [] datapoint) {
             // here kick off a thread to save data every N data points
-            for (int c = 0; c < dataColumns; c++)
+            for (int c = 0; c < this._dataColumns; c++)
             {
                 textToWrite = textToWrite + datapoint[c] + ",";
             }
             textToWrite = textToWrite + "\n";
-        }
-        
-		/// <summary>
-		/// Write To File Method. 
-		/// Outputs data to file in column format.
-		/// </summary>
-		public void WriteToFile () {
+            this._dataCount++;
 
-			// Check if data was empty
-			if (data.Count == 0) {
-				Debug.Log ("Error: Empty data. Could not write");
-				return;
-			}
-				
-			int numDatapoints = data [0].Count;
-
-            // convert stored data to string
-   //         float startTimeloop = Time.realtimeSinceStartup;
-   //         string textToWrite = "";
-			//for (int i = 0; i < numDatapoints; i++) {
-			//	for (int c = 0; c < dataColumns; c++) {
-			//		textToWrite = textToWrite + data [c] [i] + ",";
-			//	}
-			//	textToWrite += "\n";
-			//}
-   //         Debug.Log("loop only: " + (Time.realtimeSinceStartup - startTimeloop) + "s");
-
-            // if no file name is given, use default name
-            if ( filename == "" ) {
-				filename = "default_data";
-			} 
-
-			// save file to Data directory
-			filename = Directory.GetCurrentDirectory() + "/Assets/Data/" + filename;
-            
-            // check to see file name is not already in use so
-            // we don't override existing data
-            string temp = filename + ".txt";
-            int k = 0;
-            while (File.Exists(temp))
+            // Every so many data points try to write it
+            if ((this._dataCount % this._writePeriod) == 0 )
             {
-                Debug.Log("File name already in use. Finding an alternative.");
-                temp = filename + "_" + k + ".txt";
-                k++;
+                _dataQueueThread.EnqueueDataToWrite(textToWrite);
+                textToWrite = "";
             }
+        }
 
-            filename = temp;
-
-            // write to the file
-            float startTime = Time.realtimeSinceStartup;
-            File.AppendAllText(filename, textToWrite);
-            Debug.Log("writing only: " + (Time.realtimeSinceStartup - startTime) + "s");
-            Debug.Log( "Saved data to file: " + filename );
-		}
-
-
-        /// <summary>
-        /// Write To File Method. 
-        /// Outputs data to file assuming a specific name is given.
-        /// </summary>
-        public void WriteToFileName()
+        public void closeRecorder()
         {
-            // Check if data was empty
-            if (data.Count == 0)
-            {
-                Debug.Log("Error: Empty data. Could not write");
-                return;
-            }
-
-            int numDatapoints = data[0].Count;
-
-            // convert stored data to string
-            string textToWrite = "";
-            for (int i = 0; i < numDatapoints; i++)
-            {
-                for (int c = 0; c < dataColumns; c++)
-                {
-                    textToWrite = textToWrite + data[c][i] + ",";
-                    //if (data[c][i].Length < 15)
-                    //    textToWrite += "\t";
-                    //if (data[c][i].Length < 8)
-                    //    textToWrite += "\t";
-                }
-                textToWrite += "\n";
-            }
-            
-            // save file to Data directory
-            //filename = Directory.GetCurrentDirectory() + "/Assets/Data/" + filename;
-            
-            // write to the file
-            File.AppendAllText(filename, textToWrite);
-            Debug.Log("Saved data to file: " + filename);
+            _dataQueueThread.CloseAtConvenience();
         }
+
     }
 }

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.IO;
 
 using UnityEngine;
 
@@ -18,21 +19,26 @@ namespace thrThreadLoop
 {
     public class DataWriterThreadLoop : ThreadLoop
     {
-
+        
         private string _Name;
 
-        private Queue<string> _rawData;
+        private string _rawData;
+        private string _fileName;
+        private bool _writePending;
 
         private double _MaximumLoopSpan;
         private bool _CloseWheneverPossible = false;
 
+        public bool isBusy;
+
         public DataWriterThreadLoop(string strThreadName, Boolean bolIsBackGround, System.Threading.ThreadPriority ePriority, Double numTimerInterval, Double numMaximumLoopSpan,
-            string filename, Queue<string> data2Write)
+            string filename)
             : base(strThreadName, bolIsBackGround, ePriority, numTimerInterval)
         {
             this._Name = strThreadName;
             this._MaximumLoopSpan = numMaximumLoopSpan;
-            this._rawData = data2Write;
+            this._fileName = filename;
+            this.isBusy = false;
         }
 
         /// <summary>
@@ -47,13 +53,22 @@ namespace thrThreadLoop
         {
             if (this._CloseWheneverPossible)
             {
-                Debug.Log("closing");
-                this.CloseStream();
                 this.Close();
                 return;
             }
+            if (this._writePending)
+            {
+                File.AppendAllText(_fileName, _rawData);
+                this._writePending = false;
+                this.isBusy = false;
+            }
+        }
 
-            File.AppendAllText(filename, _rawData);
+        public void writeData(string rawData)
+        {
+            this._rawData = rawData;
+            this.isBusy = true;
+            this._writePending = true;
         }
     }
 }

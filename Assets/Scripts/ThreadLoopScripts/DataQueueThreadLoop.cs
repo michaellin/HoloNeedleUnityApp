@@ -21,18 +21,25 @@ namespace thrThreadLoop
 
         private string _Name;
 
-        private DataWriterThreadLoop __DataWriterThread;
+        private string _fileName;
+
+        private DataWriterThreadLoop _DataWriterThread;
 
         private Queue<string> DataToWrite = new Queue<string>();
 
         private double _MaximumLoopSpan;
         private bool _CloseWheneverPossible = false;
 
-        public DataQueueThreadLoop(string strThreadName, Boolean bolIsBackGround, System.Threading.ThreadPriority ePriority, Double numTimerInterval, Double numMaximumLoopSpan)
+        public DataQueueThreadLoop(string strThreadName, Boolean bolIsBackGround, System.Threading.ThreadPriority ePriority, Double numTimerInterval, Double numMaximumLoopSpan,
+            string filename)
             : base(strThreadName, bolIsBackGround, ePriority, numTimerInterval)
         {
             this._Name = strThreadName;
             this._MaximumLoopSpan = numMaximumLoopSpan;
+            this._fileName = filename;
+
+            _DataWriterThread = new DataWriterThreadLoop("dataWriterThread", true, System.Threading.ThreadPriority.Normal, 5, 4, _fileName);
+            _DataWriterThread.Start();
         }
 
         /// <summary>
@@ -47,82 +54,16 @@ namespace thrThreadLoop
         {
             if (this._CloseWheneverPossible)
             {
-                Debug.Log("closing");
-                this.CloseStream();
+                _DataWriterThread.Close();
                 this.Close();
                 return;
             }
 
-            bool bolLoopActivity = false;
-            bool bolDidOne = true;
-            byte[] aBytes;
-            while (bolDidOne && this.LoopSpan().TotalMilliseconds < this._MaximumLoopSpan)
+            if (DataToWrite.Count > 0 && !_DataWriterThread.isBusy)
             {
-                bolDidOne = false;
-                aBytes = this.GetBytesToWrite();
-                if ((aBytes != null) && aBytes.Length > 0)
-                {
-                    bolDidOne = true;
-                    this.WriteDataStream(aBytes);
-                }
+                _DataWriterThread.writeData(GetDataToWrite());
+            }
 
-                if (this._CloseWheneverPossible)
-                {
-                    this.CloseStream();
-                    this.Close();
-                    return;
-                }
-
-                if (this.ReadDataStream())
-                {
-                    bolDidOne = true;
-                }
-
-                if (this._CloseWheneverPossible)
-                {
-                    this.CloseStream();
-                    this.Close();
-                    return;
-                }
-
-                if (bolDidOne) bolLoopActivity = true;
-            }
-            if (bolLoopActivity)
-            {
-                this.UpdateLastLoopActivity();
-            }
-            else
-            {
-                this.NoLoopActivityProcess();
-            }
-            //this.ResetProcess();
-        }
-
-        /// <summary>
-        /// ResetProcess used when thread
-        /// </summary>
-        private void ResetProcess()
-        {
-            if (this.BugResetCondition())
-            {
-                //the low level RS code has a bug that need to be reset every once in a while
-                //because otherwise it consumes the CPU and the program gets stuck
-                this.ReportResetBug();
-                this.SetNextBugResetDateTime();
-                this.CloseStream();
-            }
-            else if (this.NoDataTimeOutCondition())
-            {
-                //if it's been a while without receiving a data, close it and the try to open next
-                this.ReportNoDataTimeOut();
-                this.SetNextNoDataTimeOutDateTime();
-                this.CloseStream();
-            }
-            if (!this.IsOpenStream())
-            {
-                //try to re-open the conection
-                this.OpenStream();
-            }
         }
 
         /// <summary>
