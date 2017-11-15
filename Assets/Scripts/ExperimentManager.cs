@@ -33,6 +33,8 @@ public class ExperimentManager : MonoBehaviour
     #region experimentVars
     public int subjNum;
     public int trialNo;
+		public int conditionNo;
+		private int[] conditionOrder;
     private bool startRecording;
     public float recordPeriod;
     private float recordCounter;
@@ -45,9 +47,9 @@ public class ExperimentManager : MonoBehaviour
     {
         InitCalib,
         KeyboardFB,
-        Straight,
-        Shape,
-        Projection,
+        Straight = 1,
+        Shape = 2,
+        Projection = 3,
         ProjectHit
     };
     #endregion
@@ -103,6 +105,17 @@ public class ExperimentManager : MonoBehaviour
             Directory.CreateDirectory(userFolder);
         }
 
+
+				// Initialize experiment parameters
+				trialNo = 0;
+				conditionNo = 0;
+				// TODO: Change this to depend on the subject to randomize
+				conditionOrder = [0,1,2]				
+
+        currState = ExpStates.InitCalib;
+        lockPhantom = false;
+        startRecording = false;
+
         // Init all the data recording objects
         string filename;
         //filename = userFolder + "/needleMkr_Trial_" + trialNo;
@@ -111,7 +124,7 @@ public class ExperimentManager : MonoBehaviour
         //hlMkrRecorder = new RecordData(filename, hlMkrRecorderCols);
         //filename = userFolder + "/phantomMkr_Trial_" + trialNo;
         //phantomMkrRecorder = new RecordData(filename, phantomMkrRecorderCols, 1);
-        filename = userFolder + "/Mkrs_Trial_" + trialNo;
+				filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
         MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
         filename = userFolder + "/offset";
         offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
@@ -123,6 +136,7 @@ public class ExperimentManager : MonoBehaviour
         currState = ExpStates.InitCalib;
         lockPhantom = false;
         startRecording = false;
+
     }
 
     float startTime;
@@ -260,8 +274,52 @@ public class ExperimentManager : MonoBehaviour
                     }
                 }
 
+								// If space pressed then start recording
+								if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
+								{
+										debounceCalib = true;
+										Invoke("recoverDebounce", 0.08f);
+										startRecording ^= true; // toggle
+										if (startRecording)
+										{
+												// reset the counter
+												recordCounter = recordPeriod;
+										} else {
+												MkrsRecorder.closeRecorder();
+										}
+								}
+								else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+								{
+										debounceCalib = true;
+										Invoke("recoverDebounce", 0.08f);
+										trialNo += 1;
+										if ((trialNo % targetsPerTrial)	== 0) 
+										{
+											conditionNo += 1;
+											int currCondition = conditionOrder[conditionNo];
+											if (currCondition == ExpStates.Straight)
+											{
+													currState = ExpStates.Straight;
+													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+													Debug.Log("current state: straight");
+											}
+											else if (currCondition == ExpStates.Shape)
+											{
+													currState = ExpStates.Shape;
+													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+													Debug.Log("current state: shape");
+											}
+											else if (currCondition == ExpStates.Projection)
+											{
+													currState = ExpStates.Projection;
+													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+													Debug.Log("current state: project");
+											}
+										}
+										filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + currCondition;
+										MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+								}
                 break;
-
         }
 
 
@@ -310,27 +368,13 @@ public class ExperimentManager : MonoBehaviour
             Invoke("recoverDebounce", 0.08f);
             lockPhantom ^= true;
         }
-        else if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
-        {
-            debounceCalib = true;
-            Invoke("recoverDebounce", 0.08f);
-            startRecording ^= true; // toggle
-            if (startRecording)
-            {
-                // reset the counter
-                recordCounter = recordPeriod;
-            }
-            //float startTime = Time.realtimeSinceStartup;
-
-            //for (int i = 0; i < 100; i ++)
-            //{
-            //    needleMkrRecorder.addData(PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(), 
-            //                                PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
-            //                                PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString());
-            //}
-            //Debug.Log("finished writing in: " + (Time.realtimeSinceStartup - startTime) + "s");
-        }
     }
+
+
+		private static Vector3[] targetLoc = new Vector3[] {
+		new Vector3( -0.03f, 0f, -0.03f ),
+		new Vector3( -0.03f, 0f, -0.03f ),
+		};
 
     /// <summary>
     /// Clean up the thread and close the port on application close event.
@@ -362,154 +406,6 @@ public class ExperimentManager : MonoBehaviour
         debounceCalib = false;
     }
 
-    /// <summary>
-    /// Get Calibration calculates the projection matrix from points in displayed to points in measured. The problem is defined
-    /// as qi = T*pi. Where pi are measured and qi are defined points. If we rework the matrix we can get A*t = 0. The reworked 
-    /// matrix is of the following form:
-    /// A = [-q1 -q2 -q3 -1   0   0   0  0   0   0   0  0 p1q1 p1q2 p1q3;
-    ///        0   0   0  0 -q1 -q2 -q3 -1   0   0   0  0 p2q1 p2q2 p2q3;
-    ///        0   0   0  0   0   0   0  0 -q1 -q2 -q3 -1 p3q1 p3q2 p3q3;
-    ///        ...
-    ///        ]
-    /// and t is of the form:
-    /// t = [t11; t12; t13; t14; t21; t22; t23; t24; t31; t32; t33; t34; t41; t42; t43]
-    /// We solve for t using SVD decomposition.
-    /// </summary>
-    /// <param name="pi"></param>
-    /// <param name="qi"></param>
-    /// <returns></returns>
-    //private Matrix4x4 GetCalibration( double[,] pi, double[,] qi )
-    //{
-    //    const int doubleSize = 8;
-    //    const int matrixWidth = 16;
-    //    const int matrixHeight = SPAAMPoints*3;
-
-    //    var A = new double[matrixHeight, matrixWidth];
-    //    for (int p = 0; p < SPAAMPoints; p++)
-    //    {
-    //        double[] row1 = { -qi[p, 0], -qi[p, 1], -qi[p, 2], -1, 0, 0, 0, 0, 0, 0, 0, 0, pi[p, 0] * qi[p, 0], pi[p, 0] * qi[p, 1], pi[p, 0] * qi[p, 2], pi[p, 0] };
-    //        Buffer.BlockCopy( row1, 0, A, doubleSize * matrixWidth * ( 3 * p), doubleSize * matrixWidth );
-    //        double[] row2 = { 0, 0, 0, 0, -qi[p, 0], -qi[p, 1], -qi[p, 2], -1, 0, 0, 0, 0, pi[p, 1] * qi[p, 0], pi[p, 1] * qi[p, 1], pi[p, 1] * qi[p, 2], pi[p, 1] };
-    //        Buffer.BlockCopy( row2, 0, A, doubleSize * matrixWidth * (3 * p + 1), doubleSize * matrixWidth );
-    //        double[] row3 = { 0, 0, 0, 0, 0, 0, 0, 0, -qi[p, 0], -qi[p, 1], -qi[p, 2], -1, pi[p, 2] * qi[p, 0], pi[p, 2] * qi[p, 1], pi[p, 2] * qi[p, 2], pi[p, 2] };
-    //        Buffer.BlockCopy( row3, 0, A, doubleSize * matrixWidth * (3 * p + 2), doubleSize * matrixWidth );
-    //    }
-        
-    //    // Prepare matrices to get SVD results
-    //    double[] W = new double[matrixWidth];
-    //    double[,] U = new double[matrixHeight, matrixWidth];
-    //    double[,] VT = new double[matrixWidth, matrixWidth];
-
-    //    alglib.svd.rmatrixsvd( A, matrixHeight, matrixWidth, 0, 1, 2, ref W, ref U, ref VT ); // SVD with alglib
-
-    //    double[] coeffs = new double[matrixWidth];
-
-    //    Buffer.BlockCopy( VT, doubleSize * matrixWidth * (matrixWidth - 1), coeffs, 0, doubleSize * matrixWidth ); // Last row of VT contains the parameters of the transform matrix.
-    //    printMatrix( coeffs );
-
-    //    Matrix4x4 Tresult = new Matrix4x4();
-    //    Tresult.m00 = (float)coeffs[0];
-    //    Tresult.m01 = (float)coeffs[1];
-    //    Tresult.m02 = (float)coeffs[2];
-    //    Tresult.m03 = (float)coeffs[3];
-    //    Tresult.m10 = (float)coeffs[4];
-    //    Tresult.m11 = (float)coeffs[5];
-    //    Tresult.m12 = (float)coeffs[6];
-    //    Tresult.m13 = (float)coeffs[7];
-    //    Tresult.m20 = (float)coeffs[8];
-    //    Tresult.m21 = (float)coeffs[9];
-    //    Tresult.m22 = (float)coeffs[10];
-    //    Tresult.m23 = (float)coeffs[11];
-    //    Tresult.m30 = (float)coeffs[12];
-    //    Tresult.m31 = (float)coeffs[13];
-    //    Tresult.m32 = (float)coeffs[14];
-    //    Tresult.m33 = (float)coeffs[15];
-
-    //    return Tresult;
-    //}
-
-    /// <summary>
-    ///  Calibrates two sets of homogeneous coordinates using least squares
-    /// </summary>
-    /// <param name="P">defined</param>
-    /// <param name="Q">measured</param>
-    /// <returns></returns>
-    //private Matrix4x4 GetCalibration2( double[,] P, double[,] Q )
-    //{
-    //    double[,] Q_star = new double[4, 12];
-    //    transposeMat( 12, 4, Q, ref Q_star );
-
-    //    double[,] Q_temp = new double[4, 4];
-    //    alglib.rmatrixgemm( 4, 4, 12, 1, Q_star, 0, 0, 0, Q, 0, 0, 0, 0, ref Q_temp, 0, 0 );
-
-    //    int success;
-    //    alglib.matinvreport rep;
-    //    alglib.rmatrixinverse( ref Q_temp, out success, out rep );
-
-    //    double[,] Q_pinv = new double[4, 12];
-    //    alglib.rmatrixgemm( 4, 12, 4, 1, Q_temp, 0, 0, 0, Q_star, 0, 0, 0, 0, ref Q_pinv, 0, 0 );
-
-    //    double[,] result = new double[4, 4]; // result should be the transpose of this
-    //    alglib.rmatrixgemm( 4, 4, 12, 1, Q_pinv, 0, 0, 0, P, 0, 0, 0, 0, ref result, 0, 0 );
-
-    //    Matrix4x4 outMat = new Matrix4x4();
-    //    outMat.m00 = (float) result[0, 0];
-    //    outMat.m01 = (float)result[1, 0];
-    //    outMat.m02 = (float)result[2, 0];
-    //    outMat.m03 = (float)result[3, 0];
-    //    outMat.m10 = (float)result[0, 1];
-    //    outMat.m11 = (float)result[1, 1];
-    //    outMat.m12 = (float)result[2, 1];
-    //    outMat.m13 = (float)result[3, 1];
-    //    outMat.m20 = (float)result[0, 2];
-    //    outMat.m21 = (float)result[1, 2];
-    //    outMat.m22 = (float)result[2, 2];
-    //    outMat.m23 = (float)result[3, 2];
-    //    outMat.m30 = (float)result[0, 3];
-    //    outMat.m31 = (float)result[1, 3];
-    //    outMat.m32 = (float)result[2, 3];
-    //    outMat.m33 = (float)result[3, 3];
-    //    return outMat;
-    //}
-
-    /// <summary>
-    /// Computes the transpose of a matrix
-    /// </summary>
-    /// <param name="m">height</param>
-    /// <param name="n">width</param>
-    /// <param name="inMat"></param>
-    /// <param name="outMat"></param>
-    private void transposeMat( int m, int n, double[,] inMat, ref double[,] outMat )
-    {
-        for ( int k = 0; k < m; k++ )
-        {
-            for ( int j = 0; j < n; j ++ )
-            {
-                outMat[j, k] = inMat[k, j];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Makes an array of points into Homogeneous coordinate
-    /// </summary>
-    /// <param name="m"></param>
-    /// <param name="n"></param>
-    /// <param name="inMat"></param>
-    /// <param name="outMat"></param>
-    private double[,] toHomogeneous( int m, int n, double[,] inMat )
-    {
-        double[,] result = new double[m, n + 1];
-        for (int k = 0; k < m; k++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                result[k, j] = inMat[k, j];
-            }
-            result[k, n] = 1.0f;
-        }
-        return result;
-    }
 
     static void printMatrix(double[,] M)
     {
