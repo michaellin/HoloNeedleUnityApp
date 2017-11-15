@@ -20,6 +20,7 @@ public class ExperimentManager : MonoBehaviour
     public GameObject Needle;                      // This object represents the needle
     public GameObject NeedleRenderer;              // This object has ProcNeedle attached
     public GameObject Phantom;                     // This object is linked to the phantom
+    public GameObject Target;                      // This object is linked to the target within the phantom
     public GameObject CalibrationBox;              // This object is linked to the calibration box
     #endregion
 
@@ -29,12 +30,14 @@ public class ExperimentManager : MonoBehaviour
     Quaternion qN1_N2;
     Vector3 rN1_No1_No2;
 
-    // *** Experiment Vars *** //
+    // *** Experiment Vars/Const *** //
     #region experimentVars
     public int subjNum;
+    private string userFolder;
     public int trialNo;
-		public int conditionNo;
-		private int[] conditionOrder;
+    private const int trialsPerCondition = 12;
+	public int conditionNo;
+	private ExpStates[] conditionOrder;
     private bool startRecording;
     public float recordPeriod;
     private float recordCounter;
@@ -42,14 +45,17 @@ public class ExperimentManager : MonoBehaviour
     ExpStates currState;
     private bool lockPhantom;
 
+    // *** Experiment Measured Stuff ** //
+    private Vector3 phantomOffset;
+
     // States for the experiment state machine
     enum ExpStates
     {
         InitCalib,
         KeyboardFB,
-        Straight = 1,
-        Shape = 2,
-        Projection = 3,
+        Straight,
+        Shape,
+        Projection,
         ProjectHit
     };
     #endregion
@@ -90,11 +96,12 @@ public class ExperimentManager : MonoBehaviour
         qN1_N2 = new Quaternion(0.603773723212385f, 0.029050211798263f, 0.796173811526621f, 0.026844705099943f);
         rN1_No1_No2 = new Vector3(-0.064259547303643f, -0.377448931834412f, 0.346321017932784f);
 
+        phantomOffset = new Vector3(-0.0165854f, -0.1127728f, -0.0012354f);
 
         // Data recording
         string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
         string userFolderName = "subject_" + subjNum;
-        string userFolder = baseFilePath + userFolderName;
+        userFolder = baseFilePath + userFolderName;
         // Determine whether the directory exists.
         if (Directory.Exists(userFolder))
         {
@@ -105,12 +112,11 @@ public class ExperimentManager : MonoBehaviour
             Directory.CreateDirectory(userFolder);
         }
 
-
-				// Initialize experiment parameters
-				trialNo = 0;
-				conditionNo = 0;
-				// TODO: Change this to depend on the subject to randomize
-				conditionOrder = [0,1,2]				
+		// Initialize experiment parameters
+		trialNo = 0;
+		conditionNo = 0;
+		// TODO: Change this to depend on the subject to randomize
+		conditionOrder = new ExpStates[] { ExpStates.Straight, ExpStates.Shape, ExpStates.Projection};				
 
         currState = ExpStates.InitCalib;
         lockPhantom = false;
@@ -124,7 +130,7 @@ public class ExperimentManager : MonoBehaviour
         //hlMkrRecorder = new RecordData(filename, hlMkrRecorderCols);
         //filename = userFolder + "/phantomMkr_Trial_" + trialNo;
         //phantomMkrRecorder = new RecordData(filename, phantomMkrRecorderCols, 1);
-				filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
+		filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
         MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
         filename = userFolder + "/offset";
         offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
@@ -162,6 +168,8 @@ public class ExperimentManager : MonoBehaviour
                     CalibrationBox.SetActive(false);
                     NeedleRenderer.SetActive(true);
                     Phantom.SetActive(true);
+                    int targetPosIdx = targetOrder[0] - 1;
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
                     Debug.Log("current state: straight");
                     currState = ExpStates.Straight;
@@ -274,51 +282,57 @@ public class ExperimentManager : MonoBehaviour
                     }
                 }
 
-								// If space pressed then start recording
-								if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
-								{
-										debounceCalib = true;
-										Invoke("recoverDebounce", 0.08f);
-										startRecording ^= true; // toggle
-										if (startRecording)
-										{
-												// reset the counter
-												recordCounter = recordPeriod;
-										} else {
-												MkrsRecorder.closeRecorder();
-										}
-								}
-								else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
-								{
-										debounceCalib = true;
-										Invoke("recoverDebounce", 0.08f);
-										trialNo += 1;
-										if ((trialNo % targetsPerTrial)	== 0) 
-										{
-											conditionNo += 1;
-											int currCondition = conditionOrder[conditionNo];
-											if (currCondition == ExpStates.Straight)
-											{
-													currState = ExpStates.Straight;
-													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-													Debug.Log("current state: straight");
-											}
-											else if (currCondition == ExpStates.Shape)
-											{
-													currState = ExpStates.Shape;
-													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-													Debug.Log("current state: shape");
-											}
-											else if (currCondition == ExpStates.Projection)
-											{
-													currState = ExpStates.Projection;
-													NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-													Debug.Log("current state: project");
-											}
-										}
-										filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + currCondition;
-										MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
-								}
+				// If space pressed then start recording
+				if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
+				{
+				    debounceCalib = true;
+				    Invoke("recoverDebounce", 0.08f);
+				    startRecording ^= true; // toggle
+				    if (startRecording)
+				    {
+						    // reset the counter
+						    recordCounter = recordPeriod;
+				    } else {
+						    MkrsRecorder.closeRecorder();
+				    }
+				}
+				else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+				{
+			        debounceCalib = true;
+			        Invoke("recoverDebounce", 0.08f);
+			        trialNo += 1;
+                    int targetPosIdx = targetOrder[trialNo] - 1;
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                    if ((trialNo % trialsPerCondition)	== 0) 
+			        {
+				        conditionNo += 1;
+				        ExpStates currCondition = conditionOrder[conditionNo];
+
+				        if (currCondition == ExpStates.Straight)
+				        {
+						    currState = ExpStates.Straight;
+						    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+						    Debug.Log("current state: straight");
+
+                        }
+				        else if (currCondition == ExpStates.Shape)
+				        {
+						    currState = ExpStates.Shape;
+						    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+						    Debug.Log("current state: shape");
+                        }
+				        else if (currCondition == ExpStates.Projection)
+				        {
+						    currState = ExpStates.Projection;
+						    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+						    Debug.Log("current state: project");
+                        }
+			        }
+                    string filename;
+                    
+                    filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo];
+			        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+				}
                 break;
         }
 
@@ -370,11 +384,50 @@ public class ExperimentManager : MonoBehaviour
         }
     }
 
+    private static int[] targetOrder = new int[]
+    {
+        1, 5, 35, 25, 21, 17, 13, 3, 7, 27, 11, 19, 23, 31, 29, 15, 33, 9,
+        10, 22, 36, 20, 2, 24, 6, 30, 28, 14, 8, 12, 16, 4, 32, 26, 18, 34
+    };
 
-		private static Vector3[] targetLoc = new Vector3[] {
-		new Vector3( -0.03f, 0f, -0.03f ),
-		new Vector3( -0.03f, 0f, -0.03f ),
-		};
+	private static Vector3[] targetLoc = new Vector3[] {
+	new Vector3( 0.1033f, 0.024392f, -0.0077f ),
+    new Vector3( 0.1033f, 0.024392f, -0.0477f ),
+    new Vector3( 0.1033f, 0f, -0.0077f ),
+    new Vector3( 0.1033f, 0f, -0.0477f ),
+    new Vector3( 0.1033f, -0.024392f, -0.0077f ),
+    new Vector3( 0.1033f, -0.024392f, -0.0477f ),
+    new Vector3( 0.062f, 0.024392f, -0.0077f ),
+    new Vector3( 0.062f, 0.024392f, -0.0477f ),
+    new Vector3( 0.062f, 0f, -0.0077f ),
+    new Vector3( 0.062f, 0f, -0.0477f ),
+    new Vector3( 0.062f, -0.024392f, -0.0077f ),
+    new Vector3( 0.062f, -0.024392f, -0.0477f ),
+    new Vector3( 0.020666f, 0.024392f, -0.0077f ),
+    new Vector3( 0.020666f, 0.024392f, -0.0477f ),
+    new Vector3( 0.020666f, 0f, -0.0077f ),
+    new Vector3( 0.020666f, 0f, -0.0477f ),
+    new Vector3( 0.020666f, -0.024392f, -0.0077f ),
+    new Vector3( 0.020666f, -0.024392f, -0.0477f ),
+    new Vector3( -0.1033f, 0.024392f, -0.0077f ),
+    new Vector3( -0.1033f, 0.024392f, -0.0477f ),
+    new Vector3( -0.1033f, 0f, -0.0077f ),
+    new Vector3( -0.1033f, 0f, -0.0477f ),
+    new Vector3( -0.1033f, -0.024392f, -0.0077f ),
+    new Vector3( -0.1033f, -0.024392f, -0.0477f ),
+    new Vector3( -0.062f, 0.024392f, -0.0077f ),
+    new Vector3( -0.062f, 0.024392f, -0.0477f ),
+    new Vector3( -0.062f, 0f, -0.0077f ),
+    new Vector3( -0.062f, 0f, -0.0477f ),
+    new Vector3( -0.062f, -0.024392f, -0.0077f ),
+    new Vector3( -0.062f, -0.024392f, -0.0477f ),
+    new Vector3( -0.020666f, 0.024392f, -0.0077f ),
+    new Vector3( -0.020666f, 0.024392f, -0.0477f ),
+    new Vector3( -0.020666f, 0f, -0.0077f ),
+    new Vector3( -0.020666f, 0f, -0.0477f ),
+    new Vector3( -0.020666f, -0.024392f, -0.0077f ),
+    new Vector3( -0.020666f, -0.024392f, -0.0477f ),
+    };
 
     /// <summary>
     /// Clean up the thread and close the port on application close event.
