@@ -16,9 +16,11 @@ public class ExperimentManager : MonoBehaviour
     public GameObject NeedleMarker;                // This marker will be the one attached to the needle
     public GameObject HoloLensMarker;              // This marker will be the one attached to the HoloLens
     public GameObject PhantomMarker;               // This marker will be attached to the phantom
+    public GameObject CalibrationBoxMarker;        // This marker will be attached to the calibration box
     public GameObject Needle;                      // This object represents the needle
     public GameObject NeedleRenderer;              // This object has ProcNeedle attached
     public GameObject Phantom;                     // This object is linked to the phantom
+    public GameObject CalibrationBox;              // This object is linked to the calibration box
     #endregion
 
     // *** Relative Transform Vars *** //
@@ -114,6 +116,9 @@ public class ExperimentManager : MonoBehaviour
         filename = userFolder + "/offset";
         offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
 
+        CalibrationBox.SetActive(true);
+        Phantom.SetActive(false);
+        NeedleRenderer.SetActive(false);
 
         currState = ExpStates.InitCalib;
         lockPhantom = false;
@@ -132,6 +137,21 @@ public class ExperimentManager : MonoBehaviour
         {
             case ExpStates.InitCalib:
                 // Set Needle inactive and set calibration cube active
+                relativePos = HoloLensMarker.transform.InverseTransformVector(CalibrationBoxMarker.transform.position - HoloLensMarker.transform.position);
+                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * CalibrationBoxMarker.transform.rotation;
+                CalibrationBox.transform.localRotation = qC_D * relativeRot;
+                CalibrationBox.transform.localPosition = rC_Co_Do + qC_D * relativePos;
+                if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", 0.08f);
+                    CalibrationBox.SetActive(false);
+                    NeedleRenderer.SetActive(true);
+                    Phantom.SetActive(true);
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                    Debug.Log("current state: straight");
+                    currState = ExpStates.Straight;
+                }
                 break;
 
             case ExpStates.KeyboardFB:
