@@ -76,6 +76,7 @@ namespace RecData {
 
         public void closeRecorder()
         {
+            Debug.Log("Closing recorder for " + _filename);
             _dataQueueThread.CloseAtConvenience();
         }
 
