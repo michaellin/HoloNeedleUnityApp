@@ -46,13 +46,15 @@ public class ExperimentManager : MonoBehaviour
     private bool lockPhantom;
 
     // *** Experiment Measured Stuff ** //
-    private Vector3 phantomOffset;
-    private float phantomBrimOffset;
-    private float phantomSkinOffset;
+    private static Vector3 phantomOffset;
+    private static float phantomBrimOffset = 0.764584f + 50.0f;
+    public float measuredPhantomSkinOffset;
+    private static float phantomSkinOffset;
 
     // States for the experiment state machine
     enum ExpStates
     {
+        InitEnterSubjectInfo,
         InitCalib,
         KeyboardFB,
         Straight,
@@ -82,9 +84,9 @@ public class ExperimentManager : MonoBehaviour
     float y_off;
     float z_off;
     float step_off = 0.05f;
-    private bool debounceCalib = false;
-    //private bool tapDetected = false;
-    //UnityEngine.XR.WSA.Input.GestureRecognizer recognizer;
+    private static bool debounceCalib = false;
+    private static float debounceTime = 0.04f;
+    public Vector3 currTargetPos;
     #endregion
 
     // Use this for initialization
@@ -117,31 +119,19 @@ public class ExperimentManager : MonoBehaviour
 		// Initialize experiment parameters
 		trialNo = 0;
 		conditionNo = 0;
-		// TODO: Change this to depend on the subject to randomize
-		conditionOrder = new ExpStates[] { ExpStates.Straight, ExpStates.Shape, ExpStates.Projection};				
-
-        currState = ExpStates.InitCalib;
-        lockPhantom = false;
-        startRecording = false;
 
         // Init all the data recording objects
         string filename;
-        //filename = userFolder + "/needleMkr_Trial_" + trialNo;
-        //needleMkrRecorder = new RecordData(filename, needleMkrRecorderCols);
-        //filename = userFolder + "/hlMkr_Trial_" + trialNo;
-        //hlMkrRecorder = new RecordData(filename, hlMkrRecorderCols);
-        //filename = userFolder + "/phantomMkr_Trial_" + trialNo;
-        //phantomMkrRecorder = new RecordData(filename, phantomMkrRecorderCols, 1);
 		filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
         MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
         filename = userFolder + "/offset";
         offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
 
-        CalibrationBox.SetActive(true);
+        CalibrationBox.SetActive(false);
         Phantom.SetActive(false);
         NeedleRenderer.SetActive(false);
 
-        currState = ExpStates.InitCalib;
+        currState = ExpStates.InitEnterSubjectInfo;
         lockPhantom = false;
         startRecording = false;
 
@@ -157,6 +147,36 @@ public class ExperimentManager : MonoBehaviour
         Quaternion relativePhRot;
         switch (currState)
         {
+            case ExpStates.InitEnterSubjectInfo:
+                if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
+                {
+                    if (subjNum == 0)
+                    {
+                        Debug.Log("WARNING: did you forget to update subject number?");
+                    } else
+                    {
+                        conditionOrder = allConditionOrders[subjNum % 6];
+                    }
+                    if (measuredPhantomSkinOffset == 0)
+                    {
+                        Debug.Log("WARNING: did you forget to measure the skin offset?");
+                    }
+                    else
+                    {
+                        phantomSkinOffset = phantomBrimOffset - measuredPhantomSkinOffset; // Set the Z of the phantom skin offset
+                    }
+                    
+                    if (subjNum != 0 && measuredPhantomSkinOffset != 0)
+                    {
+                        CalibrationBox.SetActive(true);
+                        Phantom.SetActive(false);
+                        NeedleRenderer.SetActive(false);
+                        currState = ExpStates.InitCalib;
+                    }
+                   
+                }
+                   
+                break;
             case ExpStates.InitCalib:
                 // Set Needle inactive and set calibration cube active
                 relativePos = HoloLensMarker.transform.InverseTransformVector(CalibrationBoxMarker.transform.position - HoloLensMarker.transform.position);
@@ -166,11 +186,11 @@ public class ExperimentManager : MonoBehaviour
                 if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     CalibrationBox.SetActive(false);
                     NeedleRenderer.SetActive(true);
                     Phantom.SetActive(true);
-                    int targetPosIdx = targetOrder[0] - 1;
+                    int targetPosIdx = targetOrder[trialNo];
                     Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
                     Debug.Log("current state: straight");
@@ -187,7 +207,7 @@ public class ExperimentManager : MonoBehaviour
                 if (Input.GetKeyDown(KeyCode.KeypadPlus) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upXOffset();
                     //rC_Co_Do += new Vector3(step_off, 0, 0);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(step_off, 0, 0));
@@ -196,7 +216,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.KeypadMinus) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnXOffset();
                     //rC_Co_Do -= new Vector3(step_off, 0, 0);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(-step_off, 0, 0));
@@ -205,7 +225,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.Keypad6) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnZOffset();
                     //rC_Co_Do += new Vector3(0, step_off, 0);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(0, step_off, 0));
@@ -214,7 +234,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.Keypad4) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upZOffset();
                     //rC_Co_Do -= new Vector3(0, step_off, 0);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(0, -step_off, 0));
@@ -223,7 +243,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.Keypad2) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().dnYOffset();
                     //rC_Co_Do += new Vector3(0, 0, step_off);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, step_off));
@@ -232,7 +252,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.Keypad8) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().upYOffset();
                     //rC_Co_Do -= new Vector3(0, 0, step_off);
                     //qC_D = qC_D * Quaternion.Euler(new Vector3(0, 0, -step_off));
@@ -241,7 +261,7 @@ public class ExperimentManager : MonoBehaviour
                 else if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     Vector3 offsetVec = NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().offset;
                     offsetRecorder.addData(offsetVec.x.ToString(), offsetVec.y.ToString(), offsetVec.z.ToString());
                 }
@@ -288,7 +308,7 @@ public class ExperimentManager : MonoBehaviour
                 if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
                 {
                     debounceCalib = true;
-                    Invoke("recoverDebounce", 0.05f);
+                    Invoke("recoverDebounce", debounceTime);
                     startRecording ^= true; // toggle
                     if (startRecording)
                     {
@@ -307,17 +327,19 @@ public class ExperimentManager : MonoBehaviour
                 }
                 else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
                 {
-                    if (trialNo < 6 * trialsPerCondition - 1)
+                    if (trialNo < 3 * trialsPerCondition - 1)
                     {
                         debounceCalib = true;
-                        Invoke("recoverDebounce", 0.05f);
+                        Invoke("recoverDebounce", debounceTime);
+
                         trialNo += 1;
-                        int targetPosIdx = targetOrder[trialNo] - 1;
+                        int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        currTargetPos = targetLoc[targetPosIdx];
                         if ((trialNo % trialsPerCondition) == 0)
                         {
-                            conditionNo += 1;
-                            ExpStates currCondition = conditionOrder[conditionNo%3];
+                            conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                            ExpStates currCondition = conditionOrder[conditionNo];
 
                             if (currCondition == ExpStates.Straight)
                             {
@@ -339,7 +361,14 @@ public class ExperimentManager : MonoBehaviour
                                 Debug.Log("current state: project");
                             }
                         }
-
+                        if (startRecording)
+                        {
+                            MkrsRecorder.closeRecorder();
+                        }
+                        recordCounter = recordPeriod;
+                        string filename;
+                        filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
                     }
                     else
                     {
@@ -351,10 +380,11 @@ public class ExperimentManager : MonoBehaviour
                     if (trialNo > 0)
                     {
                         debounceCalib = true;
-                        Invoke("recoverDebounce", 0.05f);
+                        Invoke("recoverDebounce", debounceTime);
                         trialNo -= 1;
                         int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        currTargetPos = targetLoc[targetPosIdx];
                         if ((trialNo % trialsPerCondition) == 0)
                         {
                             conditionNo = (int) Math.Floor((double)(trialNo/trialsPerCondition));
@@ -388,40 +418,85 @@ public class ExperimentManager : MonoBehaviour
 
 
         /*** Mode changing and other key listeners ***/
-        if (Input.GetKeyDown( KeyCode.T ) && (debounceCalib == false))
+        if (Input.GetKeyDown(KeyCode.Alpha0) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false)) // Go straight to Calibration with black box
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.2f);
-            
+            Invoke("recoverDebounce", debounceTime);
+            currState = ExpStates.InitCalib;
+            CalibrationBox.SetActive(true);
+            Phantom.SetActive(false);
+            NeedleRenderer.SetActive(false);
+            Debug.Log("current state: init calib");
         }
-        else if (Input.GetKeyDown(KeyCode.Alpha0) && (debounceCalib == false))
+        else if (Input.GetKeyDown(KeyCode.Alpha1) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false)) // Go straight to experiment
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.05f);
+            Invoke("recoverDebounce", debounceTime);
+            CalibrationBox.SetActive(false);
+            Phantom.SetActive(true);
+            NeedleRenderer.SetActive(true);
+
+            int targetPosIdx = targetOrder[trialNo];
+            Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+            currTargetPos = targetLoc[targetPosIdx];
+            if ((trialNo % trialsPerCondition) == 0)
+            {
+                conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                ExpStates currCondition = conditionOrder[conditionNo];
+
+                if (currCondition == ExpStates.Straight)
+                {
+                    currState = ExpStates.Straight;
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                    Debug.Log("current state: straight");
+
+                }
+                else if (currCondition == ExpStates.Shape)
+                {
+                    currState = ExpStates.Shape;
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                    Debug.Log("current state: shape");
+                }
+                else if (currCondition == ExpStates.Projection)
+                {
+                    currState = ExpStates.Projection;
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                    Debug.Log("current state: project");
+                }
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false)) // Go straight to Keyboard thing
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", debounceTime);
+            CalibrationBox.SetActive(false);
+            Phantom.SetActive(false);
+            NeedleRenderer.SetActive(true);
             currState = ExpStates.KeyboardFB;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateTip();
-            Debug.Log("current state: keyboard feedback");
+            Debug.Log("current state: keyboard FB");
         }
-        else if (Input.GetKeyDown(KeyCode.Alpha1) && (debounceCalib == false))
+        // ******************//
+        else if (Input.GetKeyDown(KeyCode.Alpha6) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false))
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.05f);
+            Invoke("recoverDebounce", debounceTime);
             currState = ExpStates.Straight;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
             Debug.Log("current state: straight");
         }
-        else if (Input.GetKeyDown(KeyCode.Alpha2) && (debounceCalib == false))
+        else if (Input.GetKeyDown(KeyCode.Alpha7) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false))
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.05f);
+            Invoke("recoverDebounce", debounceTime);
             currState = ExpStates.Shape;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
             Debug.Log("current state: shape");
         }
-        else if (Input.GetKeyDown(KeyCode.Alpha3) && (debounceCalib == false))
+        else if (Input.GetKeyDown(KeyCode.Alpha8) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false))
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.05f);
+            Invoke("recoverDebounce", debounceTime);
             currState = ExpStates.Projection;
             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
             Debug.Log("current state: project");
@@ -429,16 +504,16 @@ public class ExperimentManager : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.L) && (debounceCalib == false))
         {
             debounceCalib = true;
-            Invoke("recoverDebounce", 0.05f);
+            Invoke("recoverDebounce", debounceTime);
             lockPhantom ^= true;
         }
     }
 
     private static int[] targetOrder = new int[]
     {
-				58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 2, 68, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1, 55, 67,   // for condition 1
-				64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 38, 26, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, 7, 53, // for condition 2
-    		42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 14, 40, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23, 41, 3    // for conditino 3
+		58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 2, 68, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1, 55, 67,   // for condition 1
+	    64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 38, 26, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, 7, 53, // for condition 2
+    	42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 14, 40, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23, 41, 3    // for conditino 3
     };
     //private static int[] targetOrder = new int[]
     //{
@@ -446,79 +521,89 @@ public class ExperimentManager : MonoBehaviour
     //};
 
     private static Vector3[] targetLoc = new Vector3[] {
-    new Vector3( 0.1033f, 0.06223f, -0.0077f ),
     new Vector3( 0.1033f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.1033f, 0.037338f, -0.0077f ),
-    new Vector3( 0.1033f, 0.037338f, -0.0477f ),
-    new Vector3( 0.1033f, 0.012446f, -0.0077f ),
-    new Vector3( 0.1033f, 0.012446f, -0.0477f ),
-    new Vector3( 0.062f, 0.06223f, -0.0077f ),
-    new Vector3( 0.062f, 0.06223f, -0.0477f ),
-    new Vector3( 0.062f, 0.037338f, -0.0077f ),
-    new Vector3( 0.062f, 0.037338f, -0.0477f ),
-    new Vector3( 0.062f, 0.012446f, -0.0077f ),
-    new Vector3( 0.062f, 0.012446f, -0.0477f ),
-    new Vector3( 0.020666f, 0.06223f, -0.0077f ),
-    new Vector3( 0.020666f, 0.06223f, -0.0477f ),
-    new Vector3( 0.020666f, 0.037338f, -0.0077f ),
-    new Vector3( 0.020666f, 0.037338f, -0.0477f ),
-    new Vector3( 0.020666f, 0.012446f, -0.0077f ),
-    new Vector3( 0.020666f, 0.012446f, -0.0477f ),
-    new Vector3( -0.1033f, 0.06223f, -0.0077f ),
-    new Vector3( -0.1033f, 0.06223f, -0.0477f ),
-    new Vector3( -0.1033f, 0.037338f, -0.0077f ),
-    new Vector3( -0.1033f, 0.037338f, -0.0477f ),
-    new Vector3( -0.1033f, 0.012446f, -0.0077f ),
-    new Vector3( -0.1033f, 0.012446f, -0.0477f ),
-    new Vector3( -0.062f, 0.06223f, -0.0077f ),
-    new Vector3( -0.062f, 0.06223f, -0.0477f ),
-    new Vector3( -0.062f, 0.037338f, -0.0077f ),
-    new Vector3( -0.062f, 0.037338f, -0.0477f ),
-    new Vector3( -0.062f, 0.012446f, -0.0077f ),
-    new Vector3( -0.062f, 0.012446f, -0.0477f ),
-    new Vector3( -0.020666f, 0.06223f, -0.0077f ),
-    new Vector3( -0.020666f, 0.06223f, -0.0477f ),
-    new Vector3( -0.020666f, 0.037338f, -0.0077f ),
-    new Vector3( -0.020666f, 0.037338f, -0.0477f ),
-    new Vector3( -0.020666f, 0.012446f, -0.0077f ),
-    new Vector3( -0.020666f, 0.012446f, -0.0477f ),
-    new Vector3( 0.1033f, -0.06223f, -0.0077f ),
-    new Vector3( 0.1033f, -0.06223f, -0.0477f ),
-    new Vector3( 0.1033f, -0.037338f, -0.0077f ),
-    new Vector3( 0.1033f, -0.037338f, -0.0477f ),
-    new Vector3( 0.1033f, -0.012446f, -0.0077f ),
-    new Vector3( 0.1033f, -0.012446f, -0.0477f ),
-    new Vector3( 0.062f, -0.06223f, -0.0077f ),
-    new Vector3( 0.062f, -0.06223f, -0.0477f ),
-    new Vector3( 0.062f, -0.037338f, -0.0077f ),
-    new Vector3( 0.062f, -0.037338f, -0.0477f ),
-    new Vector3( 0.062f, -0.012446f, -0.0077f ),
-    new Vector3( 0.062f, -0.012446f, -0.0477f ),
-    new Vector3( 0.020666f, -0.06223f, -0.0077f ),
-    new Vector3( 0.020666f, -0.06223f, -0.0477f ),
-    new Vector3( 0.020666f, -0.037338f, -0.0077f ),
-    new Vector3( 0.020666f, -0.037338f, -0.0477f ),
-    new Vector3( 0.020666f, -0.012446f, -0.0077f ),
-    new Vector3( 0.020666f, -0.012446f, -0.0477f ),
-    new Vector3( -0.1033f, -0.06223f, -0.0077f ),
-    new Vector3( -0.1033f, -0.06223f, -0.0477f ),
-    new Vector3( -0.1033f, -0.037338f, -0.0077f ),
-    new Vector3( -0.1033f, -0.037338f, -0.0477f ),
-    new Vector3( -0.1033f, -0.012446f, -0.0077f ),
-    new Vector3( -0.1033f, -0.012446f, -0.0477f ),
-    new Vector3( -0.062f, -0.06223f, -0.0077f ),
-    new Vector3( -0.062f, -0.06223f, -0.0477f ),
-    new Vector3( -0.062f, -0.037338f, -0.0077f ),
-    new Vector3( -0.062f, -0.037338f, -0.0477f ),
-    new Vector3( -0.062f, -0.012446f, -0.0077f ),
-    new Vector3( -0.062f, -0.012446f, -0.0477f ),
-    new Vector3( -0.020666f, -0.06223f, -0.0077f ),
-    new Vector3( -0.020666f, -0.06223f, -0.0477f ),
-    new Vector3( -0.020666f, -0.037338f, -0.0077f ),
-    new Vector3( -0.020666f, -0.037338f, -0.0477f ),
-    new Vector3( -0.020666f, -0.012446f, -0.0077f ),
-    new Vector3( -0.020666f, -0.012446f, -0.0477f ),
+    new Vector3( 0.0933f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.0933f, 0.037338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.0933f, 0.012446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, 0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, 0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, 0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, 0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, 0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, 0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, 0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, 0.037338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, 0.012446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, 0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, 0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, 0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, 0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, 0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, 0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, 0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, 0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, 0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.0933f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.0933f, -0.037338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.0933f, -0.012446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, -0.037338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.062f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.052f, -0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, -0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.020666f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( 0.030666f, -0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, -0.037338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.1033f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.0933f, -0.012446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, -0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.062f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.052f, -0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, -0.06223f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, -0.05223f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, -0.037338f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, -0.047338f, phantomSkinOffset-0.07f ),
+    new Vector3( -0.020666f, -0.012446f, phantomSkinOffset-0.03f ),
+    new Vector3( -0.030666f, -0.022446f, phantomSkinOffset-0.07f ),
     };
+
+    private static ExpStates[][] allConditionOrders = new ExpStates[][]
+    {
+        new ExpStates[] { ExpStates.Straight, ExpStates.Shape, ExpStates.Projection},
+        new ExpStates[] { ExpStates.Shape, ExpStates.Projection, ExpStates.Straight},
+        new ExpStates[] { ExpStates.Projection, ExpStates.Straight, ExpStates.Shape},
+        new ExpStates[] { ExpStates.Straight, ExpStates.Projection, ExpStates.Shape},
+        new ExpStates[] { ExpStates.Shape, ExpStates.Straight, ExpStates.Projection},
+        new ExpStates[] { ExpStates.Projection, ExpStates.Shape, ExpStates.Straight}
+};
 
     /// <summary>
     /// Clean up the thread and close the port on application close event.
