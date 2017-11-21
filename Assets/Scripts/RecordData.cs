@@ -10,6 +10,7 @@ namespace RecData {
 
 		public string _filename;
 		public int _dataColumns;
+    public bool closed;
         private string textToWrite;
         private int _dataCount;
         private int _writePeriod;
@@ -46,6 +47,8 @@ namespace RecData {
 
             this._filename = temp;
 
+            this.closed = false;
+
             _dataQueueThread = new DataQueueThreadLoop("dataQueueThread", true, System.Threading.ThreadPriority.Lowest, 5, 4, this._filename);
             _dataQueueThread.Start();
 
@@ -76,8 +79,14 @@ namespace RecData {
 
         public void closeRecorder()
         {
+            this.closed = true;
             Debug.Log("Closing recorder for " + _filename);
             _dataQueueThread.CloseAtConvenience();
+        }
+
+        public bool isClosed()
+        {
+            return this.closed;
         }
 
     }
