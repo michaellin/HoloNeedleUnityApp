@@ -47,6 +47,8 @@ public class ExperimentManager : MonoBehaviour
 
     // *** Experiment Measured Stuff ** //
     private Vector3 phantomOffset;
+    private float phantomBrimOffset;
+    private float phantomSkinOffset;
 
     // States for the experiment state machine
     enum ExpStates
@@ -451,7 +453,7 @@ public class ExperimentManager : MonoBehaviour
 
     private static Vector3[] targetLoc = new Vector3[] {
     new Vector3( 0.1033f, 0.06223f, -0.0077f ),
-    new Vector3( 0.1033f, 0.06223f, -0.0477f ),
+    new Vector3( 0.1033f, 0.06223f, phantomSkinOffset-0.03f ),
     new Vector3( 0.1033f, 0.037338f, -0.0077f ),
     new Vector3( 0.1033f, 0.037338f, -0.0477f ),
     new Vector3( 0.1033f, 0.012446f, -0.0077f ),
