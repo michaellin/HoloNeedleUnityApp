@@ -353,7 +353,7 @@ public class ExperimentManager : MonoBehaviour
                         debounceCalib = true;
                         Invoke("recoverDebounce", 0.05f);
                         trialNo -= 1;
-                        int targetPosIdx = targetOrder[trialNo] - 1;
+                        int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
                         if ((trialNo % trialsPerCondition) == 0)
                         {
@@ -436,15 +436,9 @@ public class ExperimentManager : MonoBehaviour
 
     private static int[] targetOrder = new int[]
     {
-        24, 36, 18, 
-
-        7, 17, 33, 39
-        10, 22, 36, 20,   2, 24, 6, 30, 28, 14, 8, 12, 16, 4, 32, 26, 18, 34, 1, 5, 35, 25, 21, 17,
-
-        13, 3, 7, 27, 11, 19, 23, 31, 29, 15, 33, 9,
-        46, 58, 72, 56, 38, 60, 42, 66, 64, 50, 44, 48, 52, 40, 68, 62, 54, 70,
-        37, 41, 71, 61, 57, 53, 49, 39, 33, 63, 47, 55, 59, 67, 65, 51, 69, 45
-        
+				58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 2, 68, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1, 55, 67,   // for condition 1
+				64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 38, 26, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, 7, 53, // for condition 2
+    		42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 14, 40, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23, 41, 3    // for conditino 3
     };
     //private static int[] targetOrder = new int[]
     //{
