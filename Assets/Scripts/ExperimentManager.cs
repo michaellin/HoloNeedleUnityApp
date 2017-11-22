@@ -53,7 +53,7 @@ public class ExperimentManager : MonoBehaviour
 
     // *** Experiment Measured Stuff ** //
     private static Vector3 phantomOffset;
-    private static float phantomBrimOffset = 0.764584f + 50.0f;
+    private static float phantomBrimOffset = 0.000764584f + 0.050f;
     public float measuredPhantomSkinOffset;
     private static float phantomSkinOffset;
 
@@ -250,7 +250,8 @@ public class ExperimentManager : MonoBehaviour
                     }
                     else
                     {
-                        phantomSkinOffset = phantomBrimOffset - measuredPhantomSkinOffset; // Set the Z of the phantom skin offset
+                        phantomSkinOffset = phantomBrimOffset - (measuredPhantomSkinOffset/1000); // Set the Z of the phantom skin offset
+                        Debug.Log("Phantom skin offset " + phantomSkinOffset);
                     }
                     
                     if (subjNum != 0 && measuredPhantomSkinOffset != 0)
@@ -331,8 +332,8 @@ public class ExperimentManager : MonoBehaviour
                     NeedleRenderer.SetActive(true);
                     Phantom.SetActive(true);
 
-                    int targetPosIdx = targetOrder[practiceTrialNo];
-                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                    int targetPosIdx = practiceTargetOrder[practiceTrialNo];
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
 
                     currTargetPos = targetLoc[targetPosIdx];
 
@@ -398,8 +399,8 @@ public class ExperimentManager : MonoBehaviour
                         Invoke("recoverDebounce", debounceTime);
 
                         practiceTrialNo += 1;
-                        int targetPosIdx = targetOrder[practiceTrialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        int targetPosIdx = practiceTargetOrder[practiceTrialNo];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         practiceConditionNo = (int)Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));
@@ -451,8 +452,8 @@ public class ExperimentManager : MonoBehaviour
                         debounceCalib = true;
                         Invoke("recoverDebounce", debounceTime);
                         practiceTrialNo -= 1;
-                        int targetPosIdx = targetOrder[practiceTrialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        int targetPosIdx = practiceTargetOrder[practiceTrialNo];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         practiceConditionNo = (int) Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));
@@ -498,7 +499,7 @@ public class ExperimentManager : MonoBehaviour
                     Phantom.SetActive(true);
 
                     int targetPosIdx = targetOrder[trialNo];
-                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
 
                     currTargetPos = targetLoc[targetPosIdx];
 
@@ -608,7 +609,7 @@ public class ExperimentManager : MonoBehaviour
 
                         trialNo += 1;
                         int targetPosIdx = targetOrder[trialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
@@ -659,7 +660,7 @@ public class ExperimentManager : MonoBehaviour
                         Invoke("recoverDebounce", debounceTime);
                         trialNo -= 1;
                         int targetPosIdx = targetOrder[trialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         conditionNo = (int) Math.Floor((double)(trialNo/trialsPerCondition));
@@ -705,7 +706,7 @@ public class ExperimentManager : MonoBehaviour
                         Invoke("recoverDebounce", debounceTime);
  
                         int targetPosIdx = targetOrder[trialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
@@ -764,7 +765,7 @@ public class ExperimentManager : MonoBehaviour
             NeedleRenderer.SetActive(true);
 
             int targetPosIdx = targetOrder[trialNo];
-            Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+            Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
             currTargetPos = targetLoc[targetPosIdx];
 
             conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
@@ -834,6 +835,13 @@ public class ExperimentManager : MonoBehaviour
             lockPhantom ^= true;
         }
     }
+
+    private static int[] practiceTargetOrder = new int[]
+    {
+        0, 20, 31, 27,   // for condition 1
+	    10, 4, 15, 25,   // for condition 2
+    	24, 16, 9, 13,   // for conditino 3
+    };
 
     private static int[] targetOrder = new int[]
     {

@@ -30,6 +30,8 @@ namespace ShapeSensing {
             chainedPoints = GetChainedPoints(m_HeightSegmentCount, ax, ay, bx, by);
             Mesh mesh = BuildMesh();
             GetComponent<MeshFilter>().mesh = mesh;
+            GetComponent<MeshCollider>().sharedMesh = mesh;
+            GetComponent<MeshCollider>().inflateMesh = false;
         }
 
         /// <summary>
