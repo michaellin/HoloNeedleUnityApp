@@ -38,6 +38,12 @@ public class ExperimentManager : MonoBehaviour
     private const int trialsPerCondition = 24;
 	public int conditionNo;
 	private ExpStates[] conditionOrder;
+
+    // Practice variables
+    private int practiceTrialNo;
+    private const int practiceTrialsPerCondition = 4;
+    private int practiceConditionNo;
+
     private bool startRecording;
     public float recordPeriod;
     private float recordCounter;
@@ -56,7 +62,13 @@ public class ExperimentManager : MonoBehaviour
     {
         InitEnterSubjectInfo,
         InitCalib,
+        WaitingForKeyboardFB,
         KeyboardFB,
+        WaitingForPractice,
+        PracticeStraight,
+        PracticeShape,
+        PracticeProjection,
+        WaitingForExp,
         Straight,
         Shape,
         Projection,
@@ -70,6 +82,7 @@ public class ExperimentManager : MonoBehaviour
     private RecordData needleMkrRecorder;
     private RecordData hlMkrRecorder;
     private RecordData MkrsRecorder;
+    private RecordData PracticeMkrsRecorder;
     private RecordData offsetRecorder;
     // num of columns for each file
     private int phantomMkrRecorderCols = 7;
@@ -102,30 +115,9 @@ public class ExperimentManager : MonoBehaviour
 
         phantomOffset = new Vector3(-0.0165854f, -0.1127728f, -0.0012354f);
 
-        // Data recording
-        string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
-        string userFolderName = "subject_" + subjNum;
-        userFolder = baseFilePath + userFolderName;
-        // Determine whether the directory exists.
-        if (Directory.Exists(userFolder))
-        {
-            Debug.Log("WARNING! User folder exists already. Did you update subject number?");
-        }
-        else
-        {
-            Directory.CreateDirectory(userFolder);
-        }
-
-		// Initialize experiment parameters
+        // Initialize experiment parameters
 		trialNo = 0;
 		conditionNo = 0;
-
-        // Init all the data recording objects
-        string filename;
-		filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
-        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
-        filename = userFolder + "/offset";
-        offsetRecorder = new RecordData(filename, offsetRecorderCols, 1);
 
         CalibrationBox.SetActive(false);
         Phantom.SetActive(false);
@@ -147,85 +139,30 @@ public class ExperimentManager : MonoBehaviour
         Quaternion relativePhRot;
         switch (currState)
         {
-            case ExpStates.InitEnterSubjectInfo:
-                if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
-                {
-                    if (subjNum == 0)
-                    {
-                        Debug.Log("WARNING: did you forget to update subject number?");
-                    } else
-                    {
-                        conditionOrder = allConditionOrders[subjNum % 6];
-                    }
-                    if (measuredPhantomSkinOffset == 0)
-                    {
-                        Debug.Log("WARNING: did you forget to measure the skin offset?");
-                    }
-                    else
-                    {
-                        phantomSkinOffset = phantomBrimOffset - measuredPhantomSkinOffset; // Set the Z of the phantom skin offset
-                    }
-                    
-                    if (subjNum != 0 && measuredPhantomSkinOffset != 0)
-                    {
-                        CalibrationBox.SetActive(true);
-                        Phantom.SetActive(false);
-                        NeedleRenderer.SetActive(false);
-                        currState = ExpStates.InitCalib;
-                    }
-                   
-                }
-                   
-                break;
-            case ExpStates.InitCalib:
-                // Set Needle inactive and set calibration cube active
-                relativePos = HoloLensMarker.transform.InverseTransformVector(CalibrationBoxMarker.transform.position - HoloLensMarker.transform.position);
-                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * CalibrationBoxMarker.transform.rotation;
-                CalibrationBox.transform.localRotation = qC_D * relativeRot;
-                CalibrationBox.transform.localPosition = rC_Co_Do + qC_D * relativePos;
-                if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
+            case ExpStates.WaitingForKeyboardFB:
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
                 {
                     debounceCalib = true;
                     Invoke("recoverDebounce", debounceTime);
                     CalibrationBox.SetActive(false);
+                    Phantom.SetActive(false);
                     NeedleRenderer.SetActive(true);
-                    Phantom.SetActive(true);
-                    
-                    int targetPosIdx = targetOrder[trialNo];
-                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
-                    currTargetPos = targetLoc[targetPosIdx];
+                    currState = ExpStates.KeyboardFB;
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateTip();
+                    Debug.Log("current state: keyboard FB");
 
-                    conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
-                    ExpStates currCondition = conditionOrder[conditionNo];
-                
-                    if (currCondition == ExpStates.Straight)
-                    {
-                        currState = ExpStates.Straight;
-                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                        Debug.Log("current state: straight");
-
-                    }
-                    else if (currCondition == ExpStates.Shape)
-                    {
-                        currState = ExpStates.Shape;
-                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-                        Debug.Log("current state: shape");
-                    }
-                    else if (currCondition == ExpStates.Projection)
-                    {
-                        currState = ExpStates.Projection;
-                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-                        Debug.Log("current state: project");
-                    }
+                    // start recorder
+                    string filename = "/offset";
+                    string pathname = userFolder + "/offset";
+                    offsetRecorder = new RecordData(pathname, filename, offsetRecorderCols, 1);
                 }
                 break;
-
             case ExpStates.KeyboardFB:
                 relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
                 relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * NeedleMarker.transform.rotation;
                 Needle.transform.localRotation = qC_D * relativeRot;
                 Needle.transform.localPosition = rC_Co_Do + qC_D * relativePos;
-                
+
                 if (Input.GetKeyDown(KeyCode.KeypadPlus) && (debounceCalib == false))
                 {
                     debounceCalib = true;
@@ -287,9 +224,317 @@ public class ExperimentManager : MonoBehaviour
                     Vector3 offsetVec = NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().offset;
                     offsetRecorder.addData(offsetVec.x.ToString(), offsetVec.y.ToString(), offsetVec.z.ToString());
                 }
+                else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    offsetRecorder.closeRecorder();
+                    Debug.Log("Done with the experiment");
+                }
 
                 break;
 
+            case ExpStates.InitEnterSubjectInfo:
+                if (Input.GetKeyDown(KeyCode.KeypadEnter) && (debounceCalib == false))
+                {
+                    if (subjNum == 0)
+                    {
+                        Debug.Log("WARNING: did you forget to update subject number?");
+                    } else
+                    {
+                        conditionOrder = allConditionOrders[subjNum % 6];
+                    }
+                    if (measuredPhantomSkinOffset == 0)
+                    {
+                        Debug.Log("WARNING: did you forget to measure the skin offset?");
+                    }
+                    else
+                    {
+                        phantomSkinOffset = phantomBrimOffset - measuredPhantomSkinOffset; // Set the Z of the phantom skin offset
+                    }
+                    
+                    if (subjNum != 0 && measuredPhantomSkinOffset != 0)
+                    {
+
+                        // Data recording
+                        string baseFilePath = Directory.GetCurrentDirectory() + "/Assets/Data/";
+                        string userFolderName = "subject_" + subjNum;
+                        userFolder = baseFilePath + userFolderName;
+                        // Determine whether the directory exists.
+                        if (Directory.Exists(userFolder))
+                        {
+                            Debug.Log("WARNING! User folder exists already. Did you update subject number?");
+                        }
+                        else
+                        {
+                            Directory.CreateDirectory(userFolder);
+                        }
+
+
+                        //// Init all the data recording objects
+                        //string filename = "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
+                        //string pathname = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
+                        //MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                        //filename = "/offset";
+                        //pathname = userFolder + "/offset";
+                        //offsetRecorder = new RecordData(pathname, filename, offsetRecorderCols, 1);
+                        //filename = "/Practice_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
+                        //pathname = userFolder + "/Practice_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
+                        //PracticeMkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                        
+                        CalibrationBox.SetActive(true);
+                        Phantom.SetActive(false);
+                        NeedleRenderer.SetActive(false);
+                        currState = ExpStates.InitCalib;
+                    }
+                   
+                }
+                   
+                break;
+            case ExpStates.InitCalib:
+                // Set Needle inactive and set calibration cube active
+                relativePos = HoloLensMarker.transform.InverseTransformVector(CalibrationBoxMarker.transform.position - HoloLensMarker.transform.position);
+                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * CalibrationBoxMarker.transform.rotation;
+                CalibrationBox.transform.localRotation = qC_D * relativeRot;
+                CalibrationBox.transform.localPosition = rC_Co_Do + qC_D * relativePos;
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    Debug.Log("current state: waiting to start practice");
+                    currState = ExpStates.WaitingForPractice;
+                    
+                } 
+                else if (Input.GetKeyDown(KeyCode.UpArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    Debug.Log("current state: waiting to start experiment");
+                    currState = ExpStates.WaitingForExp;
+
+                }
+                else if (Input.GetKeyDown(KeyCode.DownArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    Debug.Log("current state: waiting to start keyboard FB");
+                    currState = ExpStates.WaitingForKeyboardFB;
+
+                }
+                break;
+            case ExpStates.WaitingForPractice:
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    CalibrationBox.SetActive(false);
+                    NeedleRenderer.SetActive(true);
+                    Phantom.SetActive(true);
+
+                    int targetPosIdx = targetOrder[practiceTrialNo];
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+
+                    currTargetPos = targetLoc[targetPosIdx];
+
+                    practiceConditionNo = 0;
+                    currState = ExpStates.PracticeStraight;
+                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                    Debug.Log("current state: practice straight");
+
+                    startRecording = true;
+                    Debug.Log("started recording practice trial " + practiceTrialNo);
+                    recordCounter = recordPeriod;
+                    string filename = "/Practice_Trial_" + practiceTrialNo + "_Condition_" + allConditionOrders[0][practiceConditionNo % 3];
+                    string pathname;
+                    pathname = userFolder + filename;
+                    PracticeMkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                }
+                break;
+
+            case ExpStates.PracticeProjection:
+            case ExpStates.PracticeShape:
+            case ExpStates.PracticeStraight:
+                relativePos = HoloLensMarker.transform.InverseTransformVector(NeedleMarker.transform.position - HoloLensMarker.transform.position);
+                relativeRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * NeedleMarker.transform.rotation;
+                Needle.transform.localRotation = qC_D * relativeRot;
+                Needle.transform.localPosition = rC_Co_Do + qC_D * relativePos;
+
+                if (lockPhantom == false)
+                {
+                    relativePhPos = HoloLensMarker.transform.InverseTransformVector(PhantomMarker.transform.position - HoloLensMarker.transform.position);
+                    relativePhRot = Quaternion.Inverse(HoloLensMarker.transform.rotation) * PhantomMarker.transform.rotation;
+                    Phantom.transform.rotation = Camera.main.transform.rotation * qC_D * relativePhRot;
+                    Phantom.transform.position = Camera.main.transform.position + Camera.main.transform.TransformVector(rC_Co_Do + qC_D * relativePhPos);
+                }
+
+                if (startRecording)
+                {
+                    recordCounter -= Time.deltaTime;
+                    if (recordCounter < 0)
+                    {
+                        PracticeMkrsRecorder.addData(Time.realtimeSinceStartup.ToString(),
+                                                PhantomMarker.transform.position.x.ToString(), PhantomMarker.transform.position.y.ToString(), PhantomMarker.transform.position.z.ToString(),
+                                                PhantomMarker.transform.rotation.w.ToString(), PhantomMarker.transform.rotation.x.ToString(),
+                                                PhantomMarker.transform.rotation.y.ToString(), PhantomMarker.transform.rotation.z.ToString(),
+                                                NeedleMarker.transform.position.x.ToString(), NeedleMarker.transform.position.y.ToString(), NeedleMarker.transform.position.z.ToString(),
+                                                NeedleMarker.transform.rotation.w.ToString(), NeedleMarker.transform.rotation.x.ToString(),
+                                                NeedleMarker.transform.rotation.y.ToString(), NeedleMarker.transform.rotation.z.ToString(),
+                                                HoloLensMarker.transform.position.x.ToString(), HoloLensMarker.transform.position.y.ToString(), HoloLensMarker.transform.position.z.ToString(),
+                                                HoloLensMarker.transform.rotation.w.ToString(), HoloLensMarker.transform.rotation.x.ToString(),
+                                                HoloLensMarker.transform.rotation.y.ToString(), HoloLensMarker.transform.rotation.z.ToString());
+                        recordCounter = recordPeriod; // reset the counter
+                    }
+                }
+
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                {
+
+					startRecording = false;
+					if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
+
+                    if (practiceTrialNo < 3*practiceTrialsPerCondition - 1 )
+                    {
+                        debounceCalib = true;
+                        Invoke("recoverDebounce", debounceTime);
+
+                        practiceTrialNo += 1;
+                        int targetPosIdx = targetOrder[practiceTrialNo];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        currTargetPos = targetLoc[targetPosIdx];
+
+                        practiceConditionNo = (int)Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));
+                            
+                        if (practiceConditionNo == 0)
+                        {
+                            currState = ExpStates.PracticeStraight;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                            Debug.Log("current state: practice straight");
+
+                        }
+                        else if (practiceConditionNo == 1)
+                        {
+                            currState = ExpStates.PracticeShape;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                            Debug.Log("current state: practice shape");
+                        }
+                        else if (practiceConditionNo == 2)
+                        {
+                            currState = ExpStates.PracticeProjection;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                            Debug.Log("current state: practice project");
+                        }
+
+						startRecording = true;
+                        Debug.Log("started recording practice trial " + practiceTrialNo);
+                        recordCounter = recordPeriod;
+                        string filename = "/Practice_Trial_" + practiceTrialNo + "_Condition_" + allConditionOrders[0][practiceConditionNo % 3];
+                        string pathname;
+                        pathname = userFolder + filename;
+                        PracticeMkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+
+                    }
+                    else
+                    {
+                        Debug.Log("Practice done. Waiting to start experiment.");
+                        currState = ExpStates.WaitingForExp;
+                    }
+                }
+                else if (Input.GetKeyDown(KeyCode.LeftArrow) && (debounceCalib == false))
+                {
+
+				    startRecording = false;
+				    if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
+
+                    if (practiceTrialNo > 0)
+                    {
+
+                        debounceCalib = true;
+                        Invoke("recoverDebounce", debounceTime);
+                        practiceTrialNo -= 1;
+                        int targetPosIdx = targetOrder[practiceTrialNo];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        currTargetPos = targetLoc[targetPosIdx];
+
+                        practiceConditionNo = (int) Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));
+
+                        if (practiceConditionNo == 0)
+                        {
+                            currState = ExpStates.Straight;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                            Debug.Log("current state: straight");
+
+                        }
+                        else if (practiceConditionNo == 1)
+                        {
+                            currState = ExpStates.Shape;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                            Debug.Log("current state: shape");
+                        }
+                        else if (practiceConditionNo == 2)
+                        {
+                            currState = ExpStates.Projection;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                            Debug.Log("current state: project");
+                        }
+
+						startRecording = true;
+						Debug.Log("started recording practice trial " + practiceTrialNo);
+						recordCounter = recordPeriod;
+                        string filename = "/Practice_Trial_" + practiceTrialNo + "_Condition_" + allConditionOrders[0][practiceConditionNo % 3];
+                        string pathname;
+                        pathname = userFolder + filename;
+						PracticeMkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+
+                    }
+                }
+                break;
+            case ExpStates.WaitingForExp:
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
+                    CalibrationBox.SetActive(false);
+                    NeedleRenderer.SetActive(true);
+                    Phantom.SetActive(true);
+
+                    int targetPosIdx = targetOrder[trialNo];
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+
+                    currTargetPos = targetLoc[targetPosIdx];
+
+                    conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                    ExpStates currCondition = conditionOrder[conditionNo];
+
+                    if (currCondition == ExpStates.Straight)
+                    {
+                        currState = ExpStates.Straight;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                        Debug.Log("current state: straight");
+
+                    }
+                    else if (currCondition == ExpStates.Shape)
+                    {
+                        currState = ExpStates.Shape;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                        Debug.Log("current state: shape");
+                    }
+                    else if (currCondition == ExpStates.Projection)
+                    {
+                        currState = ExpStates.Projection;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                        Debug.Log("current state: project");
+                    }
+
+                    // start the recording stuff
+                    startRecording = true;
+                    Debug.Log("started recording trial " + trialNo);
+                    recordCounter = recordPeriod;
+                    string filename = "/Exp_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                    string pathname;
+                    pathname = userFolder + filename;
+                    MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                }
+                break;
             case ExpStates.Projection:
             case ExpStates.Shape:
             case ExpStates.Straight:
@@ -326,29 +571,36 @@ public class ExperimentManager : MonoBehaviour
                     }
                 }
 
+                #region old stuff
                 // If space pressed then start recording
-                if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
-                {
-                    debounceCalib = true;
-                    Invoke("recoverDebounce", debounceTime);
-                    startRecording ^= true; // toggle
-                    if (startRecording)
-                    {
-                        // reset the counter
-                        Debug.Log("started recording trial " + trialNo);
-                        recordCounter = recordPeriod;
-                        string filename;
+                //if (Input.GetKeyDown(KeyCode.Space) && (debounceCalib == false))
+                //{
+                //    debounceCalib = true;
+                //    Invoke("recoverDebounce", debounceTime);
+                //    startRecording ^= true; // toggle
+                //    if (startRecording)
+                //    {
+                //        // reset the counter
+                //        Debug.Log("started recording trial " + trialNo);
+                //        recordCounter = recordPeriod;
 
-                        filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo%3];
-                        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
-                    }
-                    else
-                    {
-                        MkrsRecorder.closeRecorder();
-                    }
-                }
-                else if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
+                //        string filename = "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                //        string pathname;
+                //        pathname = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo%3];
+                //        MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                //    }
+                //    else
+                //    {
+                //        MkrsRecorder.closeRecorder();
+                //    }
+                //}
+#endregion
+
+                if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
                 {
+                    startRecording = false;
+                    if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+
                     if (trialNo < 3 * trialsPerCondition - 1)
                     {
                         debounceCalib = true;
@@ -358,47 +610,49 @@ public class ExperimentManager : MonoBehaviour
                         int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
                         currTargetPos = targetLoc[targetPosIdx];
-                        if ((trialNo % trialsPerCondition) == 0)
-                        {
-                            conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
-                            ExpStates currCondition = conditionOrder[conditionNo];
 
-                            if (currCondition == ExpStates.Straight)
-                            {
-                                currState = ExpStates.Straight;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                                Debug.Log("current state: straight");
+                        conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                        ExpStates currCondition = conditionOrder[conditionNo];
 
-                            }
-                            else if (currCondition == ExpStates.Shape)
-                            {
-                                currState = ExpStates.Shape;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-                                Debug.Log("current state: shape");
-                            }
-                            else if (currCondition == ExpStates.Projection)
-                            {
-                                currState = ExpStates.Projection;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-                                Debug.Log("current state: project");
-                            }
-                        }
-                        if (startRecording)
+                        if (currCondition == ExpStates.Straight)
                         {
-                            MkrsRecorder.closeRecorder();
+                            currState = ExpStates.Straight;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                            Debug.Log("current state: straight");
+
                         }
+                        else if (currCondition == ExpStates.Shape)
+                        {
+                            currState = ExpStates.Shape;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                            Debug.Log("current state: shape");
+                        }
+                        else if (currCondition == ExpStates.Projection)
+                        {
+                            currState = ExpStates.Projection;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                            Debug.Log("current state: project");
+                        }
+                        
+                        startRecording = true;
+                        Debug.Log("started recording trial " + trialNo);
                         recordCounter = recordPeriod;
-                        string filename;
-                        filename = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
-                        MkrsRecorder = new RecordData(filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                        string filename = "/Exp_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                        string pathname;
+                        pathname = userFolder + filename;
+                        MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
                     }
                     else
                     {
-                        Debug.Log("Experiment done");
+                        Debug.Log("Experiment done. Waiting for keyboard feedback experiment.");
+                        currState = ExpStates.WaitingForKeyboardFB;
                     }
                 }
                 else if (Input.GetKeyDown(KeyCode.LeftArrow) && (debounceCalib == false))
                 {
+                    startRecording = false;
+                    if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+
                     if (trialNo > 0)
                     {
                         debounceCalib = true;
@@ -407,32 +661,83 @@ public class ExperimentManager : MonoBehaviour
                         int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
                         currTargetPos = targetLoc[targetPosIdx];
-                        if ((trialNo % trialsPerCondition) == 0)
+
+                        conditionNo = (int) Math.Floor((double)(trialNo/trialsPerCondition));
+                        ExpStates currCondition = conditionOrder[conditionNo];
+
+                        if (currCondition == ExpStates.Straight)
                         {
-                            conditionNo = (int) Math.Floor((double)(trialNo/trialsPerCondition));
-                            ExpStates currCondition = conditionOrder[conditionNo];
+                            currState = ExpStates.Straight;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                            Debug.Log("current state: straight");
 
-                            if (currCondition == ExpStates.Straight)
-                            {
-                                currState = ExpStates.Straight;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                                Debug.Log("current state: straight");
-
-                            }
-                            else if (currCondition == ExpStates.Shape)
-                            {
-                                currState = ExpStates.Shape;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-                                Debug.Log("current state: shape");
-                            }
-                            else if (currCondition == ExpStates.Projection)
-                            {
-                                currState = ExpStates.Projection;
-                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-                                Debug.Log("current state: project");
-                            }
+                        }
+                        else if (currCondition == ExpStates.Shape)
+                        {
+                            currState = ExpStates.Shape;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                            Debug.Log("current state: shape");
+                        }
+                        else if (currCondition == ExpStates.Projection)
+                        {
+                            currState = ExpStates.Projection;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                            Debug.Log("current state: project");
                         }
 
+                        startRecording = true;
+                        Debug.Log("started recording trial " + trialNo);
+                        recordCounter = recordPeriod;
+                        string filename = "/Exp_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                        string pathname;
+                        pathname = userFolder + filename;
+                        MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
+                    }
+                }
+                else if (Input.GetKeyDown(KeyCode.DownArrow) && (debounceCalib == false))
+                {
+                    startRecording = false;
+                    if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+
+                    if (trialNo > 0 && trialNo < 3 * trialsPerCondition - 1)
+                    {
+                        debounceCalib = true;
+                        Invoke("recoverDebounce", debounceTime);
+ 
+                        int targetPosIdx = targetOrder[trialNo];
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
+                        currTargetPos = targetLoc[targetPosIdx];
+
+                        conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                        ExpStates currCondition = conditionOrder[conditionNo];
+
+                        if (currCondition == ExpStates.Straight)
+                        {
+                            currState = ExpStates.Straight;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                            Debug.Log("current state: straight");
+
+                        }
+                        else if (currCondition == ExpStates.Shape)
+                        {
+                            currState = ExpStates.Shape;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                            Debug.Log("current state: shape");
+                        }
+                        else if (currCondition == ExpStates.Projection)
+                        {
+                            currState = ExpStates.Projection;
+                            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                            Debug.Log("current state: project");
+                        }
+
+                        startRecording = true;
+                        Debug.Log("started recording trial " + trialNo);
+                        recordCounter = recordPeriod;
+                        string filename = "/Exp_Trial_" + trialNo + "_Condition_" + conditionOrder[conditionNo % 3];
+                        string pathname;
+                        pathname = userFolder + filename;
+                        MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
                     }
                 }
                 break;
@@ -632,8 +937,9 @@ public class ExperimentManager : MonoBehaviour
     void OnApplicationQuit()
     {
         Debug.Log("Closing all recording objects");
-        MkrsRecorder.closeRecorder();
-        offsetRecorder.closeRecorder();
+        if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+        if (!offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
+        if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
     }
 
     /// <summary>
@@ -644,8 +950,9 @@ public class ExperimentManager : MonoBehaviour
     void OnDestroy()
     {
         Debug.Log("Closing all recording objects");
-        MkrsRecorder.closeRecorder();
-        offsetRecorder.closeRecorder();
+        if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+        if (!offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
+        if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
     }
 
     /// <summary>

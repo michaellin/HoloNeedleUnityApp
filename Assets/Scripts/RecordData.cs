@@ -8,8 +8,10 @@ namespace RecData {
 
 	public class RecordData {
 
-		public string _filename;
-		public int _dataColumns;
+		public string _pathname;
+        public string _filename;
+        public int _dataColumns;
+    public bool closed;
         private string textToWrite;
         private int _dataCount;
         private int _writePeriod;
@@ -19,34 +21,38 @@ namespace RecData {
         /// Constructor. 
         /// Inputs: file name and number of data columns for this file.
         /// </summary>
-        public RecordData (string filename = "", int dataColumns = 1, int writePeriod = 20) {
-			this._filename = filename;
-			this._dataColumns = dataColumns;
+        public RecordData (string pathname = "", string filename = "", int dataColumns = 1, int writePeriod = 20) {
+			this._pathname = pathname;
+            this._filename = filename;
+
+            this._dataColumns = dataColumns;
             this._writePeriod = writePeriod;
 
             // Here do the directory checking
-            if (this._filename == "")
+            if (this._pathname == "")
             {
-                this._filename = "default_data";
+                this._pathname = "default_data";
             }
 
             //// save file to Data directory
-            //this._filename = Directory.GetCurrentDirectory() + "/Assets/Data/" + this._filename;
+            //this._pathname = Directory.GetCurrentDirectory() + "/Assets/Data/" + this._pathname;
 
             // check to see file name is not already in use so
             // we don't override existing data
-            string temp = this._filename + ".txt";
+            string temp = this._pathname + ".txt";
             int k = 0;
             while (File.Exists(temp))
             {
                 Debug.Log("File name already in use. Finding an alternative.");
-                temp = this._filename + "_" + k + ".txt";
+                temp = this._pathname + "_" + k + ".txt";
                 k++;
             }
 
-            this._filename = temp;
+            this._pathname = temp;
 
-            _dataQueueThread = new DataQueueThreadLoop("dataQueueThread", true, System.Threading.ThreadPriority.Lowest, 5, 4, this._filename);
+            this.closed = false;
+
+            _dataQueueThread = new DataQueueThreadLoop("dataQueueThread", true, System.Threading.ThreadPriority.Lowest, 5, 4, this._pathname);
             _dataQueueThread.Start();
 
         }
@@ -76,8 +82,14 @@ namespace RecData {
 
         public void closeRecorder()
         {
+            this.closed = true;
             Debug.Log("Closing recorder for " + _filename);
             _dataQueueThread.CloseAtConvenience();
+        }
+
+        public bool isClosed()
+        {
+            return this.closed;
         }
 
     }
