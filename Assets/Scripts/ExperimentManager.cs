@@ -190,11 +190,33 @@ public class ExperimentManager : MonoBehaviour
                     CalibrationBox.SetActive(false);
                     NeedleRenderer.SetActive(true);
                     Phantom.SetActive(true);
+                    
                     int targetPosIdx = targetOrder[trialNo];
                     Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
-                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                    Debug.Log("current state: straight");
-                    currState = ExpStates.Straight;
+                    currTargetPos = targetLoc[targetPosIdx];
+
+                    conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+                    ExpStates currCondition = conditionOrder[conditionNo];
+                
+                    if (currCondition == ExpStates.Straight)
+                    {
+                        currState = ExpStates.Straight;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                        Debug.Log("current state: straight");
+
+                    }
+                    else if (currCondition == ExpStates.Shape)
+                    {
+                        currState = ExpStates.Shape;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                        Debug.Log("current state: shape");
+                    }
+                    else if (currCondition == ExpStates.Projection)
+                    {
+                        currState = ExpStates.Projection;
+                        NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                        Debug.Log("current state: project");
+                    }
                 }
                 break;
 
@@ -439,31 +461,30 @@ public class ExperimentManager : MonoBehaviour
             int targetPosIdx = targetOrder[trialNo];
             Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx];
             currTargetPos = targetLoc[targetPosIdx];
-            if ((trialNo % trialsPerCondition) == 0)
+
+            conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
+            ExpStates currCondition = conditionOrder[conditionNo];
+                
+            if (currCondition == ExpStates.Straight)
             {
-                conditionNo = (int)Math.Floor((double)(trialNo / trialsPerCondition));
-                ExpStates currCondition = conditionOrder[conditionNo];
+                currState = ExpStates.Straight;
+                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
+                Debug.Log("current state: straight");
 
-                if (currCondition == ExpStates.Straight)
-                {
-                    currState = ExpStates.Straight;
-                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                    Debug.Log("current state: straight");
-
-                }
-                else if (currCondition == ExpStates.Shape)
-                {
-                    currState = ExpStates.Shape;
-                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-                    Debug.Log("current state: shape");
-                }
-                else if (currCondition == ExpStates.Projection)
-                {
-                    currState = ExpStates.Projection;
-                    NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-                    Debug.Log("current state: project");
-                }
             }
+            else if (currCondition == ExpStates.Shape)
+            {
+                currState = ExpStates.Shape;
+                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
+                Debug.Log("current state: shape");
+            }
+            else if (currCondition == ExpStates.Projection)
+            {
+                currState = ExpStates.Projection;
+                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
+                Debug.Log("current state: project");
+            }
+
         }
         else if (Input.GetKeyDown(KeyCode.Alpha2) && (currState != ExpStates.InitEnterSubjectInfo) && (debounceCalib == false)) // Go straight to Keyboard thing
         {
