@@ -40,7 +40,7 @@ public class ExperimentManager : MonoBehaviour
 	private ExpStates[] conditionOrder;
 
     // Practice variables
-    private int practiceTrialNo;
+    public int practiceTrialNo;
     private const int practiceTrialsPerCondition = 4;
     private int practiceConditionNo;
 
@@ -270,18 +270,6 @@ public class ExperimentManager : MonoBehaviour
                         {
                             Directory.CreateDirectory(userFolder);
                         }
-
-
-                        //// Init all the data recording objects
-                        //string filename = "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
-                        //string pathname = userFolder + "/Mkrs_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
-                        //MkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
-                        //filename = "/offset";
-                        //pathname = userFolder + "/offset";
-                        //offsetRecorder = new RecordData(pathname, filename, offsetRecorderCols, 1);
-                        //filename = "/Practice_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
-                        //pathname = userFolder + "/Practice_Trial_" + trialNo + "_Condition_" + conditionOrder[0];
-                        //PracticeMkrsRecorder = new RecordData(pathname, filename, needleMkrRecorderCols + hlMkrRecorderCols + phantomMkrRecorderCols + 1);
                         
                         CalibrationBox.SetActive(true);
                         Phantom.SetActive(false);
@@ -389,15 +377,14 @@ public class ExperimentManager : MonoBehaviour
 
                 if (Input.GetKeyDown(KeyCode.RightArrow) && (debounceCalib == false))
                 {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
 
-					startRecording = false;
+                    startRecording = false;
 					if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
 
                     if (practiceTrialNo < 3*practiceTrialsPerCondition - 1 )
                     {
-                        debounceCalib = true;
-                        Invoke("recoverDebounce", debounceTime);
-
                         practiceTrialNo += 1;
                         int targetPosIdx = practiceTargetOrder[practiceTrialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
@@ -442,15 +429,14 @@ public class ExperimentManager : MonoBehaviour
                 }
                 else if (Input.GetKeyDown(KeyCode.LeftArrow) && (debounceCalib == false))
                 {
+                    debounceCalib = true;
+                    Invoke("recoverDebounce", debounceTime);
 
-				    startRecording = false;
+                    startRecording = false;
 				    if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
 
                     if (practiceTrialNo > 0)
                     {
-
-                        debounceCalib = true;
-                        Invoke("recoverDebounce", debounceTime);
                         practiceTrialNo -= 1;
                         int targetPosIdx = practiceTargetOrder[practiceTrialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
@@ -460,22 +446,22 @@ public class ExperimentManager : MonoBehaviour
 
                         if (practiceConditionNo == 0)
                         {
-                            currState = ExpStates.Straight;
+                            currState = ExpStates.PracticeStraight;
                             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateStraight();
-                            Debug.Log("current state: straight");
+                            Debug.Log("current state: practice straight");
 
                         }
                         else if (practiceConditionNo == 1)
                         {
-                            currState = ExpStates.Shape;
+                            currState = ExpStates.PracticeShape;
                             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateShape();
-                            Debug.Log("current state: shape");
+                            Debug.Log("current state: practice shape");
                         }
                         else if (practiceConditionNo == 2)
                         {
-                            currState = ExpStates.Projection;
+                            currState = ExpStates.PracticeProjection;
                             NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().setStateProjection();
-                            Debug.Log("current state: project");
+                            Debug.Log("current state: practice project");
                         }
 
 						startRecording = true;
@@ -608,6 +594,12 @@ public class ExperimentManager : MonoBehaviour
                         Invoke("recoverDebounce", debounceTime);
 
                         trialNo += 1;
+                        if (trialNo % trialsPerCondition == 0)
+                        {
+                            Debug.Log("Take a break. Waiting to continue.");
+                            currState = ExpStates.InitCalib;
+                            break;
+                        }
                         int targetPosIdx = targetOrder[trialNo];
                         Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
                         currTargetPos = targetLoc[targetPosIdx];
@@ -855,78 +847,78 @@ public class ExperimentManager : MonoBehaviour
     //};
 
     private static Vector3[] targetLoc = new Vector3[] {
-    new Vector3( 0.1033f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.1033f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, 0.037338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.1033f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, 0.012446f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, 0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, 0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, 0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, 0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, 0.037338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, 0.012446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, 0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, 0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, 0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, 0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, 0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, 0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, 0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, 0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.1033f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.1033f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, -0.037338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.1033f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.0933f, -0.012446f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, -0.037338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.062f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.052f, -0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, -0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( 0.020666f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( 0.030666f, -0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, -0.037338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.1033f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.0933f, -0.012446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, -0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.062f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.052f, -0.022446f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, -0.06223f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, -0.05223f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, -0.037338f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, -0.047338f, phantomSkinOffset-0.07f ),
-    new Vector3( -0.020666f, -0.012446f, phantomSkinOffset-0.03f ),
-    new Vector3( -0.030666f, -0.022446f, phantomSkinOffset-0.07f ),
+    new Vector3( 0.1033f, 0.06223f, -0.03f ),
+    new Vector3( 0.0933f, 0.05223f, -0.07f ),
+    new Vector3( 0.1033f, 0.037338f, -0.03f ),
+    new Vector3( 0.0933f, 0.037338f, -0.07f ),
+    new Vector3( 0.1033f, 0.012446f, -0.03f ),
+    new Vector3( 0.0933f, 0.012446f, -0.07f ),
+    new Vector3( 0.062f, 0.06223f, -0.03f ),
+    new Vector3( 0.052f, 0.05223f, -0.07f ),
+    new Vector3( 0.062f, 0.037338f, -0.03f ),
+    new Vector3( 0.052f, 0.047338f, -0.07f ),
+    new Vector3( 0.062f, 0.012446f, -0.03f ),
+    new Vector3( 0.052f, 0.022446f, -0.07f ),
+    new Vector3( 0.020666f, 0.06223f, -0.03f ),
+    new Vector3( 0.030666f, 0.05223f, -0.07f ),
+    new Vector3( 0.020666f, 0.037338f, -0.03f ),
+    new Vector3( 0.030666f, 0.047338f, -0.07f ),
+    new Vector3( 0.020666f, 0.012446f, -0.03f ),
+    new Vector3( 0.030666f, 0.022446f, -0.07f ),
+    new Vector3( -0.1033f, 0.06223f, -0.03f ),
+    new Vector3( -0.0933f, 0.05223f, -0.07f ),
+    new Vector3( -0.1033f, 0.037338f, -0.03f ),
+    new Vector3( -0.0933f, 0.037338f, -0.07f ),
+    new Vector3( -0.1033f, 0.012446f, -0.03f ),
+    new Vector3( -0.0933f, 0.012446f, -0.07f ),
+    new Vector3( -0.062f, 0.06223f, -0.03f ),
+    new Vector3( -0.052f, 0.05223f, -0.07f ),
+    new Vector3( -0.062f, 0.037338f, -0.03f ),
+    new Vector3( -0.052f, 0.047338f, -0.07f ),
+    new Vector3( -0.062f, 0.012446f, -0.03f ),
+    new Vector3( -0.052f, 0.022446f, -0.07f ),
+    new Vector3( -0.020666f, 0.06223f, -0.03f ),
+    new Vector3( -0.030666f, 0.05223f, -0.07f ),
+    new Vector3( -0.020666f, 0.037338f, -0.03f ),
+    new Vector3( -0.030666f, 0.047338f, -0.07f ),
+    new Vector3( -0.020666f, 0.012446f, -0.03f ),
+    new Vector3( -0.030666f, 0.022446f, -0.07f ),
+    new Vector3( 0.1033f, -0.06223f, -0.03f ),
+    new Vector3( 0.0933f, -0.05223f, -0.07f ),
+    new Vector3( 0.1033f, -0.037338f, -0.03f ),
+    new Vector3( 0.0933f, -0.037338f, -0.07f ),
+    new Vector3( 0.1033f, -0.012446f, -0.03f ),
+    new Vector3( 0.0933f, -0.012446f, -0.07f ),
+    new Vector3( 0.062f, -0.06223f, -0.03f ),
+    new Vector3( 0.052f, -0.05223f, -0.07f ),
+    new Vector3( 0.062f, -0.037338f, -0.03f ),
+    new Vector3( 0.052f, -0.037338f, -0.07f ),
+    new Vector3( 0.062f, -0.012446f, -0.03f ),
+    new Vector3( 0.052f, -0.022446f, -0.07f ),
+    new Vector3( 0.020666f, -0.06223f, -0.03f ),
+    new Vector3( 0.030666f, -0.05223f, -0.07f ),
+    new Vector3( 0.020666f, -0.037338f, -0.03f ),
+    new Vector3( 0.030666f, -0.047338f, -0.07f ),
+    new Vector3( 0.020666f, -0.012446f, -0.03f ),
+    new Vector3( 0.030666f, -0.022446f, -0.07f ),
+    new Vector3( -0.1033f, -0.06223f, -0.03f ),
+    new Vector3( -0.0933f, -0.05223f, -0.07f ),
+    new Vector3( -0.1033f, -0.037338f, -0.03f ),
+    new Vector3( -0.0933f, -0.037338f, -0.07f ),
+    new Vector3( -0.1033f, -0.012446f, -0.03f ),
+    new Vector3( -0.0933f, -0.012446f, -0.07f ),
+    new Vector3( -0.062f, -0.06223f, -0.03f ),
+    new Vector3( -0.052f, -0.05223f, -0.07f ),
+    new Vector3( -0.062f, -0.037338f, -0.03f ),
+    new Vector3( -0.052f, -0.047338f, -0.07f ),
+    new Vector3( -0.062f, -0.012446f, -0.03f ),
+    new Vector3( -0.052f, -0.022446f, -0.07f ),
+    new Vector3( -0.020666f, -0.06223f, -0.03f ),
+    new Vector3( -0.030666f, -0.05223f, -0.07f ),
+    new Vector3( -0.020666f, -0.037338f, -0.03f ),
+    new Vector3( -0.030666f, -0.047338f, -0.07f ),
+    new Vector3( -0.020666f, -0.012446f, -0.03f ),
+    new Vector3( -0.030666f, -0.022446f, -0.07f ),
     };
 
     private static ExpStates[][] allConditionOrders = new ExpStates[][]
@@ -945,9 +937,9 @@ public class ExperimentManager : MonoBehaviour
     void OnApplicationQuit()
     {
         Debug.Log("Closing all recording objects");
-        if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
-        if (!offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
-        if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
+        if (!(MkrsRecorder == null) && !MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+        if (!(offsetRecorder == null) && !offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
+        if (!(PracticeMkrsRecorder == null) && !PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
     }
 
     /// <summary>
@@ -958,9 +950,9 @@ public class ExperimentManager : MonoBehaviour
     void OnDestroy()
     {
         Debug.Log("Closing all recording objects");
-        if (!MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
-        if (!offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
-        if (!PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
+        if (!(MkrsRecorder == null) && !MkrsRecorder.isClosed()) MkrsRecorder.closeRecorder();
+        if (!(offsetRecorder == null) && !offsetRecorder.isClosed()) offsetRecorder.closeRecorder();
+        if (!(PracticeMkrsRecorder == null) && !PracticeMkrsRecorder.isClosed()) PracticeMkrsRecorder.closeRecorder();
     }
 
     /// <summary>

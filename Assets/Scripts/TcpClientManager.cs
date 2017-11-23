@@ -42,12 +42,14 @@ namespace ShapeSensing {
         // code that should be in macro
         private Socket _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         private byte[] _receiveBuffer = new byte[16];
+        private bool _closedSocket = true;
 
         public void Start()
         {
             if (enableTCP)
             {
                 SetupServer();
+                _closedSocket = false;
             }
         }
 
@@ -89,17 +91,39 @@ namespace ShapeSensing {
             }
 
             //Start receiving again
-            _clientSocket.BeginReceive(_receiveBuffer, 0, _receiveBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+            if (!this._closedSocket)
+            {
+                _clientSocket.BeginReceive(_receiveBuffer, 0, _receiveBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+            }
         }
 
         void OnApplicationQuit()
         {
+            this._closedSocket = true;
             Debug.Log("Closing TCP socket");
-            if (_clientSocket.Connected)
+            try
             {
-                _clientSocket.Disconnect(false);
+                _clientSocket.Close();
             }
-            _clientSocket.Close();
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+            }
+                        
+        }
+
+        void OnDestroy()
+        {
+            this._closedSocket = true;
+            Debug.Log("Closing TCP socket");
+            try
+            {
+                _clientSocket.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+            }
         }
 
 #if NETFX_CORE
