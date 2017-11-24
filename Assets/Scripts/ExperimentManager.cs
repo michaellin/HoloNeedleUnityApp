@@ -321,7 +321,7 @@ public class ExperimentManager : MonoBehaviour
                     Phantom.SetActive(true);
 
                     int targetPosIdx = practiceTargetOrder[practiceTrialNo];
-                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
+                    Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, 0.03f);
 
                     currTargetPos = targetLoc[targetPosIdx];
 
@@ -387,7 +387,7 @@ public class ExperimentManager : MonoBehaviour
                     {
                         practiceTrialNo += 1;
                         int targetPosIdx = practiceTargetOrder[practiceTrialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, 0.03f);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         practiceConditionNo = (int)Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));
@@ -439,7 +439,7 @@ public class ExperimentManager : MonoBehaviour
                     {
                         practiceTrialNo -= 1;
                         int targetPosIdx = practiceTargetOrder[practiceTrialNo];
-                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
+                        Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, 0.03f);
                         currTargetPos = targetLoc[targetPosIdx];
 
                         practiceConditionNo = (int) Math.Floor((double)(practiceTrialNo / practiceTrialsPerCondition));

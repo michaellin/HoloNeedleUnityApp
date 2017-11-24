@@ -30,16 +30,25 @@ namespace ShapeSensing {
             chainedPoints = GetChainedPoints(m_HeightSegmentCount, ax, ay, bx, by);
             Mesh mesh = BuildMesh();
             GetComponent<MeshFilter>().mesh = mesh;
-            GetComponent<MeshCollider>().sharedMesh = mesh;
             GetComponent<MeshCollider>().inflateMesh = false;
         }
 
         /// <summary>
         /// MonoBehavior method that updates at rate of physics engine
         /// </summary>
-        void FixedUpdate()
+        void LateUpdate()
         {
+            Vector3 direction = this.transform.forward;
+            Ray ray = new Ray(this.transform.position - direction * 0.25f, direction);
+            RaycastHit hit;
+            if (Physics.Raycast(this.transform.position - direction * 0.25f, direction, out hit))
+            {
+                if (hit.transform.gameObject.name == "Target")
+                {
+                    hit.transform.gameObject.GetComponent<Renderer>().material.color = Color.red;
+                }
 
+            }
         }
   
         /// <summary>
