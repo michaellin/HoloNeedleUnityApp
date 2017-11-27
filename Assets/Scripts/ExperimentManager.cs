@@ -35,7 +35,7 @@ public class ExperimentManager : MonoBehaviour
     public int subjNum;
     private string userFolder;
     public int trialNo;
-    private const int trialsPerCondition = 24;
+    private const int trialsPerCondition = 20;
 	public int conditionNo;
 	private ExpStates[] conditionOrder;
     private bool needleUpright = true;
@@ -874,11 +874,17 @@ public class ExperimentManager : MonoBehaviour
     	24, 16, 9, 13,   // for conditino 3
     };
 
+//  private static int[] targetOrder = new int[]
+//  {
+//	  58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 2, 68, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1, 55, 67,   // for condition 1
+//    64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 38, 26, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, 7, 53, // for condition 2
+//  	42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 14, 40, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23, 41, 3    // for conditino 3
+//  };
     private static int[] targetOrder = new int[]
     {
-		  58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 2, 68, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1, 55, 67,   // for condition 1
-	    64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 38, 26, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, 7, 53, // for condition 2
-    	42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 14, 40, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23, 41, 3    // for conditino 3
+		  58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1,  // for condition 1
+	    64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, // for condition 2
+    	42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23,   // for conditino 3
     };
     //private static int[] targetOrder = new int[]
     //{
