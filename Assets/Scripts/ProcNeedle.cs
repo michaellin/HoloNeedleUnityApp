@@ -24,7 +24,7 @@ namespace ShapeSensing {
         private float ay = 0, by = 0;         // Coefficients of linear fit to the curavture along needle in yz plane
 
         public Vector3 offset;
-        private float step = 0.0005f;
+        private float step = 0.0002f;
 
         // *** Needle States ***/
         private NeedleStates needleState;
@@ -180,6 +180,10 @@ namespace ShapeSensing {
         public void dnZOffset()
         {
             offset -= new Vector3(0, 0, step);
+        }
+        public void resetOffset()
+        {
+            offset = new Vector3(0, 0, 0);
         }
 
         /// <summary>
