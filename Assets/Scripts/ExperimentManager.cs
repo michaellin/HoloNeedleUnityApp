@@ -884,9 +884,10 @@ public class ExperimentManager : MonoBehaviour
 //  };
     private static int[] targetOrder = new int[]
     {
-		  58, 60, 52, 0, 46, 20, 28, 56, 34, 8, 31, 27, 21, 71, 17, 65, 49, 69, 19, 1,  // for condition 1
-	    64, 10, 50, 54, 4, 22, 44, 70, 66, 62, 15, 25, 35, 47, 63, 45, 57, 11, 33, 61, // for condition 2
-    	42, 24, 16, 18, 32, 12, 36, 6, 30, 48, 39, 59, 9, 37, 29, 43, 13, 5, 51, 23   // for conditino 3
+
+			12, 19, 11, 29, 1, 34, 10, 26, 15, 27, 5, 32, // for condition 1
+		  7, 28, 8, 23, 4, 33, 0, 25, 14, 18, 16, 30,	  // for condition 2
+			13, 22, 17, 35, 9, 24, 3, 20, 2, 21, 6, 31,   // for condition 3
     };
     //private static int[] targetOrder = new int[]
     //{
