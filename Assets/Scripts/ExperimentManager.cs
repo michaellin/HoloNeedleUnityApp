@@ -329,8 +329,16 @@ public class ExperimentManager : MonoBehaviour
                 {
                     debounceCalib = true;
                     Invoke("recoverDebounce", debounceTime);
-                    Debug.Log("current state: waiting to start practice");
-                    currState = ExpStates.WaitingForPractice;
+                    if (trialNo != 0)
+                    {
+                        Debug.Log("current state: waiting to start experiment");
+                        currState = ExpStates.WaitingForExp;
+                    }
+                    else
+                    {
+                        Debug.Log("current state: waiting to start practice");
+                        currState = ExpStates.WaitingForPractice;
+                    }
                     
                 } 
                 else if (Input.GetKeyDown(KeyCode.UpArrow) && (debounceCalib == false))
@@ -526,7 +534,7 @@ public class ExperimentManager : MonoBehaviour
                     int targetPosIdx = targetOrder[trialNo];
 
                     Target.transform.localPosition = phantomOffset + targetLoc[targetPosIdx] + new Vector3(0, 0, phantomSkinOffset);
-                    Debug.Log("hi");
+
                     currTargetPos = targetLoc[targetPosIdx];
 
 
@@ -639,6 +647,10 @@ public class ExperimentManager : MonoBehaviour
                         {
                             Debug.Log("Take a break. Waiting to continue.");
                             currState = ExpStates.InitCalib;
+                            CalibrationBox.SetActive(true);
+                            Phantom.SetActive(false);
+                            NeedleRenderer.SetActive(false);
+
                             break;
                         }
                         int targetPosIdx = targetOrder[trialNo];
@@ -885,9 +897,9 @@ public class ExperimentManager : MonoBehaviour
     private static int[] targetOrder = new int[]
     {
 
-			12, 19, 11, 29, 1, 34, 10, 26, 15, 27, 5, 32, // for condition 1
-		  7, 28, 8, 23, 4, 33, 0, 25, 14, 18, 16, 30,	  // for condition 2
-			13, 22, 17, 35, 9, 24, 3, 20, 2, 21, 6, 31,   // for condition 3
+		12, 19, 11, 29, 1, 34, 10, 26, 15, 27, 5, 32, // for condition 1
+		7, 28, 8, 23, 4, 33, 0, 25, 14, 18, 16, 30,	  // for condition 2
+		13, 22, 17, 35, 9, 24, 3, 20, 2, 21, 6, 31,   // for condition 3
     };
     //private static int[] targetOrder = new int[]
     //{
@@ -941,7 +953,7 @@ public class ExperimentManager : MonoBehaviour
         new ExpStates[] { ExpStates.Straight, ExpStates.Projection, ExpStates.Shape},
         new ExpStates[] { ExpStates.Shape, ExpStates.Straight, ExpStates.Projection},
         new ExpStates[] { ExpStates.Projection, ExpStates.Shape, ExpStates.Straight}
-};
+    };
 
     /// <summary>
     /// Clean up the thread and close the port on application close event.
