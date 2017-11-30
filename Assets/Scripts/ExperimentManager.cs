@@ -27,8 +27,6 @@ public class ExperimentManager : MonoBehaviour
     // *** Relative Transform Vars *** //
     Quaternion qC_D;
     Vector3 rC_Co_Do;
-    Quaternion qN1_N2;
-    Vector3 rN1_No1_No2;
 
     // *** Experiment Vars/Const *** //
     #region experimentVars
@@ -87,7 +85,7 @@ public class ExperimentManager : MonoBehaviour
     private RecordData offsetRecorder;
     // num of columns for each file
     private int phantomMkrRecorderCols = 7;
-    private int needleMkrRecorderCols = 7;
+    private int needleMkrRecorderCols = 11;
     private int hlMkrRecorderCols = 7;
     private int offsetRecorderCols = 3;
     #endregion
@@ -103,16 +101,18 @@ public class ExperimentManager : MonoBehaviour
     public Vector3 currTargetPos;
     #endregion
 
+    // Temporary vars
+    Vector3 rotAxis = Vector3.right;
+    float angleIncrement = 0.05f;
+    Quaternion rotIncrement;
+
     // Use this for initialization
     void Start()
     {
 
         // Calibration results
-        qC_D = new Quaternion(0.058282339452415f, -0.020470290730742f, -0.000699217278049f, 0.998089999549415f);
-        rC_Co_Do = new Vector3(-0.003902248347851f, 0.008639295309357f, 0.008261943033732f);
-
-        qN1_N2 = new Quaternion(0.603773723212385f, 0.029050211798263f, 0.796173811526621f, 0.026844705099943f);
-        rN1_No1_No2 = new Vector3(-0.064259547303643f, -0.377448931834412f, 0.346321017932784f);
+        qC_D = new Quaternion(0.04608427f, -0.02046021f, -0.0009492501f, 0.9987264f);
+        rC_Co_Do = new Vector3(-0.003902248f, 0.006639296f, 0.008261943f);
 
         phantomOffset = new Vector3(-0.0165854f, -0.1127728f, -0.0012354f);
 
@@ -134,6 +134,27 @@ public class ExperimentManager : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
+        if (Input.GetKeyDown(KeyCode.Alpha0) && (debounceCalib == false))
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", debounceTime);
+            NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().resetShapeSensing();
+        } else if (Input.GetKeyDown(KeyCode.Z) && (debounceCalib == false))
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", debounceTime);
+            rotIncrement = Quaternion.AngleAxis(angleIncrement, rotAxis);
+            qC_D = qC_D * rotIncrement;
+        }
+        else if (Input.GetKeyDown(KeyCode.X) && (debounceCalib == false))
+        {
+            debounceCalib = true;
+            Invoke("recoverDebounce", debounceTime);
+            rotIncrement = Quaternion.AngleAxis(-angleIncrement, rotAxis);
+            qC_D = qC_D * rotIncrement;
+        }
+        
+
         Vector3 relativePos;
         Quaternion relativeRot;
         Vector3 relativePhPos;
@@ -415,6 +436,10 @@ public class ExperimentManager : MonoBehaviour
                                                 NeedleMarker.transform.position.x.ToString(), NeedleMarker.transform.position.y.ToString(), NeedleMarker.transform.position.z.ToString(),
                                                 NeedleMarker.transform.rotation.w.ToString(), NeedleMarker.transform.rotation.x.ToString(),
                                                 NeedleMarker.transform.rotation.y.ToString(), NeedleMarker.transform.rotation.z.ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getAx().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getBx().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getAy().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getBy().ToString(),
                                                 HoloLensMarker.transform.position.x.ToString(), HoloLensMarker.transform.position.y.ToString(), HoloLensMarker.transform.position.z.ToString(),
                                                 HoloLensMarker.transform.rotation.w.ToString(), HoloLensMarker.transform.rotation.x.ToString(),
                                                 HoloLensMarker.transform.rotation.y.ToString(), HoloLensMarker.transform.rotation.z.ToString());
@@ -600,6 +625,10 @@ public class ExperimentManager : MonoBehaviour
                                                 NeedleMarker.transform.position.x.ToString(), NeedleMarker.transform.position.y.ToString(), NeedleMarker.transform.position.z.ToString(),
                                                 NeedleMarker.transform.rotation.w.ToString(), NeedleMarker.transform.rotation.x.ToString(),
                                                 NeedleMarker.transform.rotation.y.ToString(), NeedleMarker.transform.rotation.z.ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getAx().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getBx().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getAy().ToString(),
+                                                NeedleRenderer.GetComponent<ShapeSensing.ProcNeedle>().getBy().ToString(),
                                                 HoloLensMarker.transform.position.x.ToString(), HoloLensMarker.transform.position.y.ToString(), HoloLensMarker.transform.position.z.ToString(),
                                                 HoloLensMarker.transform.rotation.w.ToString(), HoloLensMarker.transform.rotation.x.ToString(),
                                                 HoloLensMarker.transform.rotation.y.ToString(), HoloLensMarker.transform.rotation.z.ToString());
@@ -883,9 +912,9 @@ public class ExperimentManager : MonoBehaviour
 
     private static int[] practiceTargetOrder = new int[]
     {
-        0, 20, 31, 27,   // for condition 1
-	    10, 4, 15, 25,   // for condition 2
-    	24, 16, 9, 13,   // for conditino 3
+        0, 20, 31, 28,   // for condition 1
+	    10, 4, 14, 23,   // for condition 2
+    	22, 11, 1, 13,   // for conditino 3
     };
 
 //  private static int[] targetOrder = new int[]
@@ -911,34 +940,34 @@ public class ExperimentManager : MonoBehaviour
 	new Vector3( 0.1033f, 0.017446f, -0.03f ),
 	new Vector3( 0.062f, 0.037338f, -0.03f ),
 	new Vector3( 0.020666f, 0.06023f, -0.03f ),
-	new Vector3( 0.020666f, 0.017446f, -0.03f ),
+	new Vector3( 0.020666f, 0.017446f, -0.03f ), // 4
 	new Vector3( 0.1033f, -0.06023f, -0.03f ),
 	new Vector3( 0.1033f, -0.017446f, -0.03f ),
 	new Vector3( 0.062f, -0.037338f, -0.03f ),
 	new Vector3( 0.020666f, -0.06023f, -0.03f ),
 	new Vector3( 0.020666f, -0.017446f, -0.03f ),
-	new Vector3( -0.1033f, 0.06023f, -0.03f ),
+	new Vector3( -0.1033f, 0.06023f, -0.03f ), // 10
 	new Vector3( -0.1033f, 0.017446f, -0.03f ),
 	new Vector3( -0.062f, 0.037338f, -0.03f ),
 	new Vector3( -0.020666f, 0.06023f, -0.03f ),
 	new Vector3( -0.020666f, 0.017446f, -0.03f ),
-	new Vector3( -0.1033f, -0.06023f, -0.03f ),
+	new Vector3( -0.1033f, -0.06023f, -0.03f ), // 15
 	new Vector3( -0.1033f, -0.017446f, -0.03f ),
 	new Vector3( -0.062f, -0.037338f, -0.03f ),
 	new Vector3( -0.020666f, -0.06023f, -0.03f ),
 	new Vector3( -0.020666f, -0.017446f, -0.03f ),
-	new Vector3( 0.1033f, 0.037338f, -0.07f ),
+	new Vector3( 0.1033f, 0.037338f, -0.07f ),  // 20
 	new Vector3( 0.062f, 0.06023f, -0.07f ),
 	new Vector3( 0.062f, 0.017446f, -0.07f ),
-	new Vector3( 0.020666f, 0.037338f, -0.07f ),
-	new Vector3( 0.1033f, -0.037338f, -0.07f ),
-	new Vector3( 0.062f, -0.06023f, -0.07f ),
+	new Vector3( 0.020666f, 0.037338f, -0.07f ), // 23
+	new Vector3( 0.1033f, -0.037338f, -0.07f ), 
+	new Vector3( 0.062f, -0.06023f, -0.07f ), // 25
 	new Vector3( 0.062f, -0.017446f, -0.07f ),
-	new Vector3( 0.020666f, -0.037338f, -0.07f ),
+	new Vector3( 0.020666f, -0.037338f, -0.07f ), // 27
 	new Vector3( -0.1033f, 0.037338f, -0.07f ),
 	new Vector3( -0.062f, 0.06023f, -0.07f ),
 	new Vector3( -0.062f, 0.017446f, -0.07f ),
-	new Vector3( -0.020666f, 0.037338f, -0.07f ),
+	new Vector3( -0.020666f, 0.037338f, -0.07f ), // 31
 	new Vector3( -0.1033f, -0.037338f, -0.07f ),
 	new Vector3( -0.062f, -0.06023f, -0.07f ),
 	new Vector3( -0.062f, -0.017446f, -0.07f ),

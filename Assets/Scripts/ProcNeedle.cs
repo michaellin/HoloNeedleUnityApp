@@ -186,6 +186,28 @@ namespace ShapeSensing {
             offset = new Vector3(0, 0, 0);
         }
 
+        public void resetShapeSensing()
+        {
+            tcp.SetReset();
+        }
+
+        public float getAx()
+        {
+            return ax;
+        }
+        public float getBx()
+        {
+            return bx;
+        }
+        public float getAy()
+        {
+            return ay;
+        }
+        public float getBy()
+        {
+            return by;
+        }
+
         /// <summary>
         /// MonoBehavior method can be used to perform any actions before quitting application.
         /// </summary>

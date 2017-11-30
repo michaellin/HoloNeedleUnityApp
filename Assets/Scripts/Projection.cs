@@ -15,9 +15,11 @@ namespace ShapeSensing {
         // *** Needle dimensions  *** //
         public float m_Radius = 0.001f;         // Radius of the needle 0.5 mm
         public float needleLength = 0.14512f;   // Length of needle 145.12 mm
+        public GameObject Target;
 
         // *** Needle coordinates *** //
         private Vector3[] chainedPoints;               // Chain interpolated points
+        private Vector3 tipPosition;
         private float ax = 0, bx = 0;         // Coefficients of linear fit to the curavture along needle in xz plane
         private float ay = 0, by = 0;         // Coefficients of linear fit to the curavture along needle in yz plane
 
@@ -47,8 +49,14 @@ namespace ShapeSensing {
                 {
                     hit.transform.gameObject.GetComponent<Renderer>().material.color = Color.red;
                 }
-
             }
+
+            float distance2Target = (this.transform.position - Target.transform.position).magnitude;
+            if (distance2Target < 0.002)
+            {
+                Target.GetComponent<Renderer>().material.color = Color.green;
+            }
+
         }
   
         /// <summary>

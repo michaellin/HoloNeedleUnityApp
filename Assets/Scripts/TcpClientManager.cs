@@ -42,10 +42,13 @@ namespace ShapeSensing {
         // code that should be in macro
         private Socket _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         private byte[] _receiveBuffer = new byte[16];
+        public byte[] _sendBuffer = new byte[1];
         private bool _closedSocket = true;
+        public bool resetFlag = false;
 
         public void Start()
         {
+            _sendBuffer[0] = 1; // 0 indicates do not reset 1 indicates to reset
             if (enableTCP)
             {
                 SetupServer();
@@ -90,11 +93,22 @@ namespace ShapeSensing {
                 interlock++;
             }
 
+            if (resetFlag)
+            {
+                _clientSocket.BeginSend(_sendBuffer, 0, _sendBuffer.Length, SocketFlags.None, null, null);
+                resetFlag = false;
+            }
+
             //Start receiving again
             if (!this._closedSocket)
             {
                 _clientSocket.BeginReceive(_receiveBuffer, 0, _receiveBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
             }
+        }
+
+        public void SetReset()
+        {
+            resetFlag = true;
         }
 
         void OnApplicationQuit()
