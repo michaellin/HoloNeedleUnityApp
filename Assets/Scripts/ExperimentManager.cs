@@ -912,9 +912,9 @@ public class ExperimentManager : MonoBehaviour
 
     private static int[] practiceTargetOrder = new int[]
     {
-        0, 20, 31, 28,   // for condition 1
-	    10, 4, 14, 23,   // for condition 2
-    	22, 11, 1, 13,   // for conditino 3
+        5, 32, 6, 33,   // for condition 1
+	    7, 34, 8, 35,   // for condition 2
+    	9, 19, 24, 27,   // for conditino 3
     };
 
 //  private static int[] targetOrder = new int[]
