@@ -936,42 +936,42 @@ public class ExperimentManager : MonoBehaviour
     //};
 
     private static Vector3[] targetLoc = new Vector3[] {
-	new Vector3( 0.1033f, 0.06023f, -0.03f ),
-	new Vector3( 0.1033f, 0.017446f, -0.03f ),
-	new Vector3( 0.062f, 0.037338f, -0.03f ),
-	new Vector3( 0.020666f, 0.06023f, -0.03f ),
-	new Vector3( 0.020666f, 0.017446f, -0.03f ), // 4
-	new Vector3( 0.1033f, -0.06023f, -0.03f ),
-	new Vector3( 0.1033f, -0.017446f, -0.03f ),
-	new Vector3( 0.062f, -0.037338f, -0.03f ),
-	new Vector3( 0.020666f, -0.06023f, -0.03f ),
-	new Vector3( 0.020666f, -0.017446f, -0.03f ),
-	new Vector3( -0.1033f, 0.06023f, -0.03f ), // 10
-	new Vector3( -0.1033f, 0.017446f, -0.03f ),
-	new Vector3( -0.062f, 0.037338f, -0.03f ),
-	new Vector3( -0.020666f, 0.06023f, -0.03f ),
-	new Vector3( -0.020666f, 0.017446f, -0.03f ),
-	new Vector3( -0.1033f, -0.06023f, -0.03f ), // 15
-	new Vector3( -0.1033f, -0.017446f, -0.03f ),
-	new Vector3( -0.062f, -0.037338f, -0.03f ),
-	new Vector3( -0.020666f, -0.06023f, -0.03f ),
-	new Vector3( -0.020666f, -0.017446f, -0.03f ),
-	new Vector3( 0.1033f, 0.037338f, -0.07f ),  // 20
-	new Vector3( 0.062f, 0.06023f, -0.07f ),
-	new Vector3( 0.062f, 0.017446f, -0.07f ),
-	new Vector3( 0.020666f, 0.037338f, -0.07f ), // 23
-	new Vector3( 0.1033f, -0.037338f, -0.07f ), 
-	new Vector3( 0.062f, -0.06023f, -0.07f ), // 25
-	new Vector3( 0.062f, -0.017446f, -0.07f ),
-	new Vector3( 0.020666f, -0.037338f, -0.07f ), // 27
-	new Vector3( -0.1033f, 0.037338f, -0.07f ),
-	new Vector3( -0.062f, 0.06023f, -0.07f ),
-	new Vector3( -0.062f, 0.017446f, -0.07f ),
-	new Vector3( -0.020666f, 0.037338f, -0.07f ), // 31
-	new Vector3( -0.1033f, -0.037338f, -0.07f ),
-	new Vector3( -0.062f, -0.06023f, -0.07f ),
-	new Vector3( -0.062f, -0.017446f, -0.07f ),
-	new Vector3( -0.020666f, -0.037338f, -0.07f )
+	new Vector3( 0.1033f, 0.06023f, -0.07f ),
+	new Vector3( 0.1033f, 0.017446f, -0.07f ),
+	new Vector3( 0.062f, 0.037338f, -0.07f ),
+	new Vector3( 0.020666f, 0.06023f, -0.07f ),
+	new Vector3( 0.020666f, 0.017446f, -0.07f ), // 4
+	new Vector3( 0.1033f, -0.06023f, -0.07f ),
+	new Vector3( 0.1033f, -0.017446f, -0.07f ),
+	new Vector3( 0.062f, -0.037338f, -0.07f ),
+	new Vector3( 0.020666f, -0.06023f, -0.07f ),
+	new Vector3( 0.020666f, -0.017446f, -0.07f ),
+	new Vector3( -0.1033f, 0.06023f, -0.07f ), // 10
+	new Vector3( -0.1033f, 0.017446f, -0.07f ),
+	new Vector3( -0.062f, 0.037338f, -0.07f ),
+	new Vector3( -0.020666f, 0.06023f, -0.07f ),
+	new Vector3( -0.020666f, 0.017446f, -0.07f ),
+	new Vector3( -0.1033f, -0.06023f, -0.07f ), // 15
+	new Vector3( -0.1033f, -0.017446f, -0.07f ),
+	new Vector3( -0.062f, -0.037338f, -0.07f ),
+	new Vector3( -0.020666f, -0.06023f, -0.07f ),
+	new Vector3( -0.020666f, -0.017446f, -0.07f ),
+	new Vector3( 0.1033f, 0.037338f, -0.03f ),  // 20
+	new Vector3( 0.062f, 0.06023f, -0.03f ),
+	new Vector3( 0.062f, 0.017446f, -0.03f ),
+	new Vector3( 0.020666f, 0.037338f, -0.03f ), // 23
+	new Vector3( 0.1033f, -0.037338f, -0.03f ), 
+	new Vector3( 0.062f, -0.06023f, -0.03f ), // 25
+	new Vector3( 0.062f, -0.017446f, -0.03f ),
+	new Vector3( 0.020666f, -0.037338f, -0.03f ), // 27
+	new Vector3( -0.1033f, 0.037338f, -0.03f ),
+	new Vector3( -0.062f, 0.06023f, -0.03f ),
+	new Vector3( -0.062f, 0.017446f, -0.03f ),
+	new Vector3( -0.020666f, 0.037338f, -0.03f ), // 31
+	new Vector3( -0.1033f, -0.037338f, -0.03f ),
+	new Vector3( -0.062f, -0.06023f, -0.03f ),
+	new Vector3( -0.062f, -0.017446f, -0.03f ),
+	new Vector3( -0.020666f, -0.037338f, -0.03f )
     };
 
     private static ExpStates[][] allConditionOrders = new ExpStates[][]
