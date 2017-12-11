@@ -26,7 +26,7 @@ public class ExperimentManager : MonoBehaviour
 
     // *** Relative Transform Vars *** //
     Quaternion qC_D;
-    Vector3 rC_Co_Do;
+    public Vector3 rC_Co_Do;
 
     // *** Experiment Vars/Const *** //
     #region experimentVars
@@ -112,7 +112,7 @@ public class ExperimentManager : MonoBehaviour
 
         // Calibration results
         qC_D = new Quaternion(0.04608427f, -0.02046021f, -0.0009492501f, 0.9987264f);
-        rC_Co_Do = new Vector3(-0.003902248f, 0.006639296f, 0.008261943f);
+        rC_Co_Do = new Vector3(-0.004502248f, 0.000639296f, 0.008261943f);
 
         phantomOffset = new Vector3(-0.0165854f, -0.1127728f, -0.0012354f);
 
